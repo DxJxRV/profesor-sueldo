@@ -1,0 +1,404 @@
+import { useState } from "react"
+import { SalaryModal } from "../components/salary-modal"
+import { Button } from "../components/ui/button"
+import { Input } from "../components/ui/input"
+import { Search, ChevronDown, TrendingUp, Building2, MapPin } from "lucide-react"
+import { Badge } from "../components/ui/badge"
+
+const states = [
+  "Aguascalientes",
+  "Baja California", 
+  "Chihuahua",
+  "Ciudad de México",
+  "Jalisco",
+  "Morelos",
+  "Nuevo León",
+  "Puebla",
+  "Querétaro",
+  "Quintana Roo",
+]
+
+function Home() {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedProfessor, setSelectedProfessor] = useState(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedStates, setSelectedStates] = useState([])
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [results, setResults] = useState([])
+  const [showResults, setShowResults] = useState(false)
+
+  const handleStateToggle = (state) => {
+    setSelectedStates((prev) => (prev.includes(state) ? prev.filter((s) => s !== state) : [...prev, state]))
+  }
+
+  const handleProfessorClick = (professor) => {
+    setSelectedProfessor(professor)
+    setIsModalOpen(true)
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setLoading(true);
+      console.log('🔍 Buscando información del profesor:', searchQuery);
+      
+      try {
+        const resp = await fetch("http://192.168.100.67:3001/api/consulta", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nombrePersona: searchQuery,
+            entidades: selectedStates.length > 0 ? selectedStates : undefined
+          })
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          console.log('✅ Respuesta recibida:', data);
+          setResults(data.profesores || []);
+          setShowResults(true);
+        } else {
+          console.error('❌ Error en la respuesta:', resp.status);
+          setResults([]);
+        }
+      } catch (error) {
+        console.error('❌ Error al realizar la consulta:', error);
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <div className="border-b bg-gradient-to-b from-primary/5 to-background">
+        <div className="container max-w-5xl mx-auto px-4 py-16 md:py-24">
+          <div className="max-w-3xl mx-auto text-center space-y-6">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-balance">¿Cuánto gana mi profesor?</h1>
+            <p className="text-lg md:text-xl text-muted-foreground text-balance">
+              Consulta información salarial de profesores en instituciones públicas de educación superior
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Section */}
+      <div className="container max-w-5xl mx-auto px-4 -mt-8">
+        <div className="bg-card border shadow-lg rounded-xl p-6 md:p-8 space-y-6">
+          {/* Search Input */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="search" className="text-sm font-medium">
+                Nombre del profesor
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Ingresa el nombre completo del profesor..."
+                  className="pl-10 h-12 text-base"
+                />
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Filtrar por estado</label>
+                <Button 
+                  type="button"
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                >
+                  {selectedStates.length > 0 && (
+                    <Badge variant="secondary" className="rounded-full">
+                      {selectedStates.length}
+                    </Badge>
+                  )}
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isFilterOpen ? "rotate-180" : ""}`} />
+                </Button>
+              </div>
+              
+              {isFilterOpen && (
+                <div className="pt-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
+                    {states.map((state) => (
+                      <div key={state} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={state}
+                          checked={selectedStates.includes(state)}
+                          onChange={() => handleStateToggle(state)}
+                          className="h-4 w-4 rounded border-border"
+                        />
+                        <label
+                          htmlFor={state}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {state}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Search Button */}
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base font-semibold gap-2" 
+              size="lg"
+              disabled={loading}
+            >
+              <Search className="w-5 h-5" />
+              {loading ? "Buscando..." : "Buscar profesor"}
+            </Button>
+          </form>
+        </div>
+      </div>
+
+      {/* Results Section */}
+      {showResults && (
+        <div className="container max-w-5xl mx-auto px-4 py-12">
+          <div className="space-y-6">
+            {/* Results Header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold">
+                Resultados encontrados
+                <span className="ml-3 text-muted-foreground font-normal">({results.length})</span>
+              </h2>
+            </div>
+
+            {/* Results List */}
+            <div className="space-y-4">
+              {results.map((result, index) => (
+                <div
+                  key={index}
+                  className="group bg-card border rounded-xl p-6 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => handleProfessorClick(result)}
+                >
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1 flex-1">
+                        <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
+                          {result.nombre}
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="w-4 h-4" />
+                            <span>{result.sujetoObligado}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleProfessorClick(result)
+                        }}
+                      >
+                        Ver detalles
+                      </Button>
+                    </div>
+
+                    {/* Salary Info */}
+                    <div className="flex flex-wrap gap-4 pt-2">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sueldo Actual</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl font-bold text-success">
+                            {result.sueldoActual}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-12 w-px bg-border" />
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sueldo Máximo</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl font-bold text-warning">
+                            {result.sueldoMax.monto}
+                          </span>
+                          <TrendingUp className="w-4 h-4 text-warning" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <SalaryModal 
+        professor={selectedProfessor}
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
+    </div>
+  )
+}
+
+export default Home;
+      setResults(data.datosSolr || []);
+      setFiltersCollapsed(true); // Colapsar filtros después de la búsqueda
+      
+    } catch (error) {
+      console.error("❌ Error en la búsqueda filtrada:", error);
+      alert(`Error al filtrar resultados: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const executeOriginalSearch = async () => {
+    setLoading(true);
+    console.log('🔍 Ejecutando búsqueda original sin filtros');
+    
+    try {
+      const resp = await fetch("http://192.168.100.67:3001/api/consulta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contenido: professorName,
+          cantidad: 20,
+          numeroPagina: 0,
+          coleccion: "SUELDOS",
+          dePaginador: false,
+          idCompartido: "",
+          filtroSeleccionado: "",
+          tipoOrdenamiento: "COINCIDENCIA",
+          sujetosObligados: { seleccion: [], descartado: [] },
+          organosGarantes: { seleccion: [], descartado: [] },
+          anioFechaInicio: { seleccion: [], descartado: [] }
+        })
+      });
+
+      if (!resp.ok) {
+        const msg = await resp.text();
+        throw new Error(`Proxy ${resp.status}: ${msg}`);
+      }
+
+      const data = await resp.json();
+      console.log("✅ Resultado original:", data);
+      setResults(data.datosSolr || []);
+      setEntidadesFederativas(data.entidadesFederativas || []);
+      setFiltersCollapsed(false); // Mostrar filtros al volver a la búsqueda original
+      
+    } catch (error) {
+      console.error("❌ Error en la búsqueda original:", error);
+      alert(`Error al buscar información: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="home-container">
+      <div className="professor-card">
+        <h1>¿Cuánto gana mi profesor?</h1>
+        <form onSubmit={handleSubmit} className="professor-form">
+          <div className="input-group">
+            <label htmlFor="professorName">Nombre del profesor:</label>
+            <input
+              type="text"
+              id="professorName"
+              value={professorName}
+              onChange={(e) => setProfessorName(e.target.value)}
+              placeholder="Ingresa el nombre del profesor..."
+              className="professor-input"
+            />
+          </div>
+          <button type="submit" className="search-button" disabled={loading}>
+            {loading ? '🔍 Buscando...' : 'Buscar sueldo'}
+          </button>
+        </form>
+
+        {showResults && (
+          <div className="results-section">
+            {entidadesFederativas.length > 0 && (
+              <div className="filters-section">
+                <div className="filters-header">
+                  <h3>Filtrar por Entidad Federativa:</h3>
+                  <button 
+                    className="collapse-btn"
+                    onClick={() => setFiltersCollapsed(!filtersCollapsed)}
+                  >
+                    {filtersCollapsed ? '▼ Mostrar filtros' : '▲ Ocultar filtros'}
+                  </button>
+                </div>
+                
+                {!filtersCollapsed && (
+                  <>
+                    <div className="sujetos-buttons">
+                      {entidadesFederativas.map((entidad, index) => (
+                        <button
+                          key={index}
+                          className={`sujeto-button ${selectedEntidad === entidad ? 'selected' : ''}`}
+                          onClick={() => selectEntidadFederativa(entidad)}
+                          disabled={loading}
+                        >
+                          <div className="sujeto-info">
+                            <span className="sujeto-name">
+                              {loading && selectedEntidad === entidad ? '🔄' : '🏛️'} {entidad}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    {selectedEntidad && (
+                      <div className="filter-actions">
+                        <button 
+                          className="clear-filter-btn" 
+                          onClick={async () => {
+                            setSelectedEntidad(null);
+                            await executeOriginalSearch();
+                          }}
+                          disabled={loading}
+                        >
+                          {loading ? '🔄 Cargando...' : 'Quitar filtro'}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                {filtersCollapsed && selectedEntidad && (
+                  <div className="selected-filter-summary">
+                    <span className="filter-summary-text">
+                      🏛️ Filtrando por: <strong>{selectedEntidad}</strong>
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <h2>Resultados encontrados: {results.length}</h2>
+            {results.length > 0 ? (
+              <div className="results-grid">
+                {results.map((professor, index) => (
+                  <ProfessorCard key={index} professor={professor} />
+                ))}
+              </div>
+            ) : (
+              <p className="no-results">No se encontraron resultados para "{professorName}"</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default Home;

@@ -1,0 +1,353 @@
+/* Professor Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem 1rem;
+  overflow: hidden;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: calc(100vh - 4rem);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
+/* Fixed Tabs Navigation */
+.modal-tabs-nav-fixed {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 2rem 2rem 1rem 2rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.modal-title-section {
+  flex: 1;
+}
+
+.modal-professor-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.modal-institution {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.modal-close-button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  margin-left: 1rem;
+}
+
+.modal-close-button:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Fixed Salary Cards at Bottom */
+.modal-salary-cards-fixed {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: white;
+  border-top: 1px solid #f3f4f6;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.modal-salary-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.875rem;
+  text-align: center;
+}
+
+.modal-salary-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.modal-salary-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.modal-current {
+  color: #2563eb;
+}
+
+.modal-maximum {
+  color: #059669;
+}
+
+.modal-salary-date {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* Tabs Section */
+.modal-tabs-section {
+  border-top: 1px solid #f3f4f6;
+  background: white;
+}
+
+.modal-tabs-nav {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8f9fa;
+}
+
+.modal-tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.modal-tab-button:hover {
+  color: #374151;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.modal-tab-button:focus {
+  outline: none;
+  color: #374151;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.modal-tab-button.active {
+  color: #2563eb;
+  background: white;
+  border-bottom-color: #2563eb;
+}
+
+.modal-tab-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.modal-tab-content {
+  min-height: 400px;
+}
+
+/* Chart Tab */
+.modal-chart-tab {
+  padding: 1.5rem 2rem;
+}
+
+.modal-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-chart-period {
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+.modal-year-filter {
+  font-size: 0.75rem;
+  color: #374151;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-year-filter:hover {
+  border-color: #2563eb;
+}
+
+.modal-year-filter:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.modal-chart-container {
+  background: white;
+  border-radius: 8px;
+  border: none;
+  padding: 1rem;
+  margin: 0 -2rem;
+  height: 350px;
+}
+
+/* History Tab */
+.modal-history-tab {
+  padding: 1.5rem 2rem 2rem 2rem;
+}
+
+.modal-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.modal-history-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.modal-calendar-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #9ca3af;
+}
+
+.modal-history-amount {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 1rem 0.5rem;
+  }
+  
+  .modal-content {
+    max-height: calc(100vh - 2rem);
+  }
+  
+  .modal-header {
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+  }
+  
+  .modal-professor-name {
+    font-size: 1.25rem;
+  }
+  
+  .modal-salary-cards-fixed {
+    grid-template-columns: 1fr 1fr;
+    padding: 0.5rem 1.5rem;
+    gap: 0.25rem;
+  }
+  
+  .modal-salary-card {
+    padding: 0.4rem;
+  }
+  
+  .modal-salary-label {
+    font-size: 0.625rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .modal-salary-amount {
+    font-size: 1.125rem;
+    margin-bottom: 0.125rem;
+  }
+  
+  .modal-salary-date {
+    font-size: 0.625rem;
+  }
+  
+  .modal-chart-tab,
+  .modal-history-tab {
+    padding: 1rem 1.5rem;
+  }
+  
+  .modal-tab-button {
+    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .modal-chart-container {
+    margin: 0 -1.5rem;
+    height: 300px;
+  }
+  
+  .modal-chart-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .modal-year-filter {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
