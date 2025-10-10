@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import '../styles/Home2.css';
 import ProfessorModal from '../components/ProfessorModal';
+import { apiClient } from '../services/apiClient';
 
 function Home2() {
   const [professorName, setProfessorName] = useState('');
@@ -23,33 +24,14 @@ function Home2() {
       // Resetear filtros al hacer una nueva búsqueda
       setSelectedEntidad(null);
       setIsFilterOpen(false);
-      console.log('🔍 Buscando información del profesor:', professorName);
       
       try {
-        const resp = await fetch("http://192.168.100.67:3001/api/consulta", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contenido: professorName,
-            cantidad: 200,
-            numeroPagina: 0,
-            coleccion: "SUELDOS",
-            dePaginador: false,
-            idCompartido: "",
-            filtroSeleccionado: "",
-            tipoOrdenamiento: "COINCIDENCIA",
-            sujetosObligados: { seleccion: [], descartado: [] },
-            organosGarantes: { seleccion: [], descartado: [] },
-            anioFechaInicio: { seleccion: [], descartado: [] }
-          })
+        const data = await apiClient.consultarProfesores({
+          contenido: professorName,
+          cantidad: 200,
+          numeroPagina: 0,
         });
 
-        if (!resp.ok) {
-          const msg = await resp.text();
-          throw new Error(`Proxy ${resp.status}: ${msg}`);
-        }
-
-        const data = await resp.json();
         console.log("✅ Resultado:", data);
         setResults(data.datosSolr || []);
         setShowResults(true);
@@ -88,34 +70,15 @@ function Home2() {
   const executeFilteredSearch = async (entidad) => {
     console.log("🔄 Ejecutando búsqueda filtrada por entidad:", entidad);
     setLoading(true);
-    console.log('🔍 Buscando con filtro de entidad federativa:', entidad);
     
     try {
-      const resp = await fetch("http://192.168.100.67:3001/api/consulta", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contenido: professorName,
-          cantidad: 200,
-          numeroPagina: 0,
-          coleccion: "SUELDOS",
-          dePaginador: false,
-          idCompartido: "",
-          filtroSeleccionado: "",
-          tipoOrdenamiento: "COINCIDENCIA",
-          entidadFederativa: entidad,
-          sujetosObligados: { seleccion: [], descartado: [] },
-          organosGarantes: { seleccion: [], descartado: [] },
-          anioFechaInicio: { seleccion: [], descartado: [] }
-        })
+      const data = await apiClient.consultarProfesores({
+        contenido: professorName,
+        cantidad: 200,
+        numeroPagina: 0,
+        entidadFederativa: entidad,
       });
 
-      if (!resp.ok) {
-        const msg = await resp.text();
-        throw new Error(`Proxy ${resp.status}: ${msg}`);
-      }
-
-      const data = await resp.json();
       console.log("✅ Resultado filtrado:", data);
       setResults(data.datosSolr || []);
       setIsFilterOpen(false); // Colapsar filtros después de la búsqueda
@@ -133,30 +96,12 @@ function Home2() {
     console.log('🔍 Ejecutando búsqueda original sin filtros');
     
     try {
-      const resp = await fetch("http://192.168.100.67:3001/api/consulta", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contenido: professorName,
-          cantidad: 100,
-          numeroPagina: 0,
-          coleccion: "SUELDOS",
-          dePaginador: false,
-          idCompartido: "",
-          filtroSeleccionado: "",
-          tipoOrdenamiento: "COINCIDENCIA",
-          sujetosObligados: { seleccion: [], descartado: [] },
-          organosGarantes: { seleccion: [], descartado: [] },
-          anioFechaInicio: { seleccion: [], descartado: [] }
-        })
+      const data = await apiClient.consultarProfesores({
+        contenido: professorName,
+        cantidad: 100,
+        numeroPagina: 0,
       });
 
-      if (!resp.ok) {
-        const msg = await resp.text();
-        throw new Error(`Proxy ${resp.status}: ${msg}`);
-      }
-
-      const data = await resp.json();
       console.log("✅ Resultado original:", data);
       setResults(data.datosSolr || []);
       

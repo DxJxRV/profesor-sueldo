@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { apiClient } from '../services/apiClient';
 import '../styles/ProfessorModal.css';
 
 ChartJS.register(
@@ -30,6 +31,7 @@ const ProfessorModal = ({ isOpen, onClose, professorData }) => {
 
   useEffect(() => {
     if (professorData && professorData.periodoMontos) {
+      console.log("Profesor data: ", professorData)
       // Procesar los datos para el gráfico
       const processedData = processPeriodData(professorData.periodoMontos, selectedYear);
       setChartData(processedData);
@@ -49,6 +51,44 @@ const ProfessorModal = ({ isOpen, onClose, professorData }) => {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
+
+  // Registrar vista del profesor cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && professorData) {
+      logProfessorView(professorData);
+    }
+  }, [isOpen, professorData]);
+
+  const logProfessorView = async (professor) => {
+    try {
+      // Calcular sueldo acumulado sumando todos los montos
+      const sueldoAcumulado = professor.periodoMontos.reduce((total, periodo) => {
+        const monto = parseFloat(periodo.monto.replace(/[$,]/g, ''));
+        return total + monto;
+      }, 0);
+
+      // Convertir sueldoMaximo a número
+      const sueldoMaximo = parseFloat(professor.sueldoMax.monto.replace(/[$,]/g, ''));
+
+      // Convertir ultimoSueldo (sueldo actual) a número
+      const ultimoSueldo = parseFloat(professor.sueldoActual.replace(/[$,]/g, ''));
+
+      const result = await apiClient.registrarVistaProfesor({
+        professorId: professor.professorId,
+        nombreProfesor: professor.nombre,
+        sujetoObligado: professor.sujetoObligado,
+        entidadFederativa: professor.entidadFederativa,
+        sueldoMaximo: sueldoMaximo,
+        sueldoAcumulado: sueldoAcumulado,
+        ultimoSueldo: ultimoSueldo
+      });
+
+      console.log('✅ Vista registrada:', result);
+    } catch (error) {
+      console.error('❌ Error al registrar vista del profesor:', error);
+      // No mostramos el error al usuario para no interrumpir la experiencia
+    }
+  };
 
   const getAvailableYears = (periodoMontos) => {
     if (!periodoMontos) return [];
