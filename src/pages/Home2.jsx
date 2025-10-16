@@ -142,21 +142,13 @@ function Home2() {
 
   return (
     <div className="home2-container">
-      {/* Anuncio Fijo Superior */}
-      <AdSense 
-        adSlot="1234567890"
-        adFormat="horizontal"
-        className="adsense-container adsense-top"
-        style={{ display: 'block', minHeight: '90px' }}
-      />
-
       {/* Hero Section */}
       <div className="home2-hero">
         <div className="home2-hero-content">
           <h1 className="home2-title">¿Cuánto gana mi profesor?</h1>
           <p className="home2-subtitle">
             Consulta información salarial de profesores en<br />
-            instituciones públicas de educación superior
+            cualquier institución pública de México
           </p>
         </div>
       </div>
