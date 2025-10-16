@@ -1,0 +1,44 @@
+.navbar {
+  background-color: transparent;
+  padding: 0.75rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.navbar-logo {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333333;
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+  letter-spacing: 0.3px;
+}
+
+.navbar-logo:hover {
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .navbar-logo {
+    font-size: 0.9rem;
+  }
+  
+  .navbar-container {
+    padding: 0 1rem;
+  }
+  
+  .navbar {
+    padding: 0.5rem 0;
+  }
+}

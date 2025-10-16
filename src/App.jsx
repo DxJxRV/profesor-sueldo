@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useEffect } from 'react'
 import Home from './pages/Home'
 import Home2 from './pages/Home2'
+import Layout from './components/Layout'
 import { apiClient } from './services/apiClient'
 import './App.css'
 
@@ -29,12 +30,12 @@ function App() {
 
   return (
     <Router>
-      <div className="App">
-        <Routes>
+      <Routes>
+        <Route element={<Layout />}>
           <Route path="/" element={<Home2 />} />
           <Route path="/home2" element={<Home />} />
-        </Routes>
-      </div>
+        </Route>
+      </Routes>
     </Router>
   )
 }
