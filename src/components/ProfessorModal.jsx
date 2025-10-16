@@ -12,7 +12,9 @@ import {
   Legend,
 } from 'chart.js';
 import { apiClient } from '../services/apiClient';
+import AdSense from './AdSense';
 import '../styles/ProfessorModal.css';
+import './AdSense.css';
 
 ChartJS.register(
   CategoryScale,
@@ -271,6 +273,15 @@ const ProfessorModal = ({ isOpen, onClose, professorData }) => {
           <button className="modal-close-button" onClick={onClose}>
             <X size={24} />
           </button>
+        </div>
+
+        {/* Anuncio en el modal */}
+        <div className="modal-ad-container">
+          <AdSense 
+            adSlot="4567890123"
+            adFormat="rectangle"
+            style={{ display: 'block', width: '100%', maxWidth: '336px', height: '90px', margin: '0 auto' }}
+          />
         </div>
 
         {/* Fixed Tabs Navigation */}

@@ -1,0 +1,44 @@
+/* AdSense Container Styles */
+.adsense-container {
+  width: 100%;
+  margin: 2rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.adsense-top {
+  position: sticky;
+  top: 60px;
+  z-index: 999;
+  background-color: #f8f9fa;
+  padding: 0.5rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin: 0;
+}
+
+.adsense-middle {
+  margin: 3rem 0;
+  padding: 1rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adsense-bottom {
+  margin-top: 3rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .adsense-container {
+    margin: 1rem 0;
+  }
+  
+  .adsense-top {
+    top: 50px;
+  }
+}

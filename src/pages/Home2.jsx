@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/Home2.css';
+import '../components/AdSense.css';
 import ProfessorModal from '../components/ProfessorModal';
+import AdSense from '../components/AdSense';
 import { apiClient } from '../services/apiClient';
 
 function Home2() {
@@ -15,6 +17,21 @@ function Home2() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProfessor, setSelectedProfessor] = useState(null);
 
+  // Efecto para reinicializar anuncios cuando cambian los resultados
+  useEffect(() => {
+    if (showResults && results.length > 0) {
+      // Esperar a que el DOM se actualice antes de ejecutar push
+      setTimeout(() => {
+        try {
+          if (window.adsbygoogle) {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+          }
+        } catch (error) {
+          console.error('Error loading ads:', error);
+        }
+      }, 100);
+    }
+  }, [results, showResults]);
 
 
   const handleSubmit = async (e) => {
@@ -125,6 +142,14 @@ function Home2() {
 
   return (
     <div className="home2-container">
+      {/* Anuncio Fijo Superior */}
+      <AdSense 
+        adSlot="1234567890"
+        adFormat="horizontal"
+        className="adsense-container adsense-top"
+        style={{ display: 'block', minHeight: '90px' }}
+      />
+
       {/* Hero Section */}
       <div className="home2-hero">
         <div className="home2-hero-content">
@@ -234,7 +259,21 @@ function Home2() {
 
           <div className="home2-results-list">
             {results.map((result, index) => (
-              <div key={index} className="home2-result-card" onClick={() => handleCardClick(result)}>
+              <div key={index}>
+                {/* Mostrar anuncio cada 3 resultados empezando en 0 */}
+                {(index % 3 === 0) && (
+                  <div className="home2-ad-label">
+                    
+                    <AdSense 
+                      adSlot="2345678901"
+                      className="adsense-container adsense-middle"
+                      style={{ display: 'block', minHeight: '250px' }}
+                    />
+
+                  </div>
+                )}
+                
+                <div className="home2-result-card" onClick={() => handleCardClick(result)}>
                 <div className="home2-result-header">
                   <h3 className="home2-professor-name">{result.nombre}</h3>
                   <div className="home2-professor-info">
@@ -272,6 +311,7 @@ function Home2() {
                   </div>
                 </div>
               </div>
+              </div>
             ))}
           </div>
         </div>
@@ -283,6 +323,15 @@ function Home2() {
         onClose={handleCloseModal}
         professorData={selectedProfessor}
       />
+
+      {/* Anuncio al Final */}
+      {showResults && (
+        <AdSense 
+          adSlot="3456789012"
+          className="adsense-container adsense-bottom"
+          style={{ display: 'block', minHeight: '250px' }}
+        />
+      )}
     </div>
   );
 }

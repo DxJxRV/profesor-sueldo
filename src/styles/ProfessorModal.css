@@ -51,6 +51,16 @@
   border-bottom: 1px solid #f3f4f6;
 }
 
+/* Modal Ad Container */
+.modal-ad-container {
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 .modal-title-section {
   flex: 1;
 }
