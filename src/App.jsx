@@ -2,6 +2,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useEffect } from 'react'
 import Home from './pages/Home'
 import Home2 from './pages/Home2'
+import ProfessorDetail from './pages/ProfessorDetail'
+import ProfessorRedirect from './pages/ProfessorRedirect'
+import PoliticasCookies from './pages/PoliticasCookies'
+import AvisoLegal from './pages/AvisoLegal'
+import PoliticaPrivacidad from './pages/PoliticaPrivacidad'
+import Contacto from './pages/Contacto'
 import Layout from './components/Layout'
 import { apiClient } from './services/apiClient'
 import './App.css'
@@ -34,6 +40,12 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home2 />} />
           <Route path="/home2" element={<Home />} />
+          <Route path="/profesor" element={<ProfessorRedirect />} />
+          <Route path="/profesor/:professorId/:nombreCompleto" element={<ProfessorDetail />} />
+          <Route path="/politicas-cookies" element={<PoliticasCookies />} />
+          <Route path="/aviso-legal" element={<AvisoLegal />} />
+          <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
+          <Route path="/contacto" element={<Contacto />} />
         </Route>
       </Routes>
     </Router>

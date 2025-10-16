@@ -1,0 +1,329 @@
+/* Professor Detail Page */
+.professor-detail-page {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding: 2rem 0;
+}
+
+.professor-detail-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.professor-detail-loading {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner {
+  font-size: 1.25rem;
+  color: #6b7280;
+}
+
+/* Header */
+.detail-header {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.3s ease;
+}
+
+.back-button:hover {
+  color: #111827;
+}
+
+.back-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.detail-title-section {
+  border-left: 4px solid #2563eb;
+  padding-left: 1.5rem;
+}
+
+.detail-professor-name {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+}
+
+.detail-institution {
+  color: #4b5563;
+  font-size: 1.125rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 500;
+}
+
+.detail-location {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Ad Container */
+.detail-ad-container {
+  padding: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Salary Cards */
+.detail-salary-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.detail-salary-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.detail-salary-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
+}
+
+.detail-salary-amount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.detail-current {
+  color: #2563eb;
+}
+
+.detail-maximum {
+  color: #059669;
+}
+
+.detail-salary-date {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* Tabs Navigation */
+.detail-tabs-nav {
+  display: flex;
+  gap: 1rem;
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.detail-tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  border: 2px solid #e5e7eb;
+  background: white;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.detail-tab-button:hover {
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.detail-tab-button.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+.detail-tab-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+/* Tab Content */
+.detail-tab-content {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.detail-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.detail-chart-period {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.detail-year-filter {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.detail-year-filter:hover {
+  border-color: #2563eb;
+}
+
+.detail-year-filter:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+/* Chart Tab */
+.detail-chart-container {
+  height: 400px;
+  width: 100%;
+}
+
+/* History Tab */
+.detail-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.detail-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.detail-history-item:hover {
+  background: #f3f4f6;
+}
+
+.detail-history-date {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #4b5563;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.detail-calendar-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+  color: #9ca3af;
+}
+
+.detail-history-amount {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .professor-detail-page {
+    padding: 1rem 0;
+  }
+
+  .professor-detail-container {
+    padding: 0 1rem;
+  }
+
+  .detail-header {
+    padding: 1.5rem;
+  }
+
+  .detail-professor-name {
+    font-size: 1.5rem;
+  }
+
+  .detail-institution {
+    font-size: 1rem;
+  }
+
+  .detail-salary-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .detail-tabs-nav {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .detail-tab-content {
+    padding: 1.5rem;
+  }
+
+  .detail-chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .detail-chart-container {
+    height: 300px;
+  }
+
+  .detail-history-item {
+    padding: 0.875rem 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

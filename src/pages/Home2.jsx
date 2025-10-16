@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Home2.css';
 import '../components/AdSense.css';
-import ProfessorModal from '../components/ProfessorModal';
 import AdSense from '../components/AdSense';
 import { apiClient } from '../services/apiClient';
 
 function Home2() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [professorName, setProfessorName] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -14,8 +16,72 @@ function Home2() {
   const [selectedEntidad, setSelectedEntidad] = useState(null);
   const [entidadesFederativas, setEntidadesFederativas] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedProfessor, setSelectedProfessor] = useState(null);
+
+  // Restaurar estado de búsqueda si viene del detalle de profesor
+  useEffect(() => {
+    if (location.state?.searchName) {
+      const savedName = location.state.searchName;
+      setProfessorName(savedName);
+      
+      // Ejecutar búsqueda con el nombre guardado
+      setLoading(true);
+      apiClient.consultarProfesores({
+        contenido: savedName,
+        cantidad: 200,
+        numeroPagina: 0,
+      })
+      .then(data => {
+        setResults(data.datosSolr || []);
+        setShowResults(true);
+        setHasSearched(true);
+        if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
+          setEntidadesFederativas(data.entidadesFederativas);
+        }
+      })
+      .catch(error => {
+        console.error("❌ Error al restaurar búsqueda:", error);
+        setResults([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+      
+      // Limpiar el state para que no se restaure de nuevo
+      window.history.replaceState({}, document.title);
+      return; // No ejecutar la búsqueda inicial
+    }
+    
+    // Búsqueda inicial solo si no hay estado restaurado
+    performInitialSearch();
+  }, [location.state]);
+
+  const performInitialSearch = async () => {
+    setProfessorName('Sheinbaum');
+    setLoading(true);
+    
+    try {
+      const data = await apiClient.consultarProfesores({
+        contenido: 'Sheinbaum',
+        cantidad: 200,
+        numeroPagina: 0,
+      });
+
+      console.log("✅ Resultado inicial:", data);
+      setResults(data.datosSolr || []);
+      setShowResults(true);
+      setHasSearched(true);
+      
+      if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
+        console.log('🏛️ Entidades Federativas del API:', data.entidadesFederativas);
+        setEntidadesFederativas(data.entidadesFederativas);
+      }
+      
+    } catch (error) {
+      console.error("❌ Error en búsqueda inicial:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Efecto para reinicializar anuncios cuando cambian los resultados
   useEffect(() => {
@@ -131,13 +197,14 @@ function Home2() {
   };
 
   const handleCardClick = (professorData) => {
-    setSelectedProfessor(professorData);
-    setModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setSelectedProfessor(null);
+    // Guardar solo el nombre de búsqueda actual
+    const searchName = professorName;
+    
+    // Navegar a la página de detalle con parámetros URL y estado
+    const encodedName = encodeURIComponent(professorData.nombre);
+    navigate(`/profesor/${professorData.professorId}/${encodedName}`, {
+      state: { searchName }
+    });
   };
 
   return (
@@ -252,8 +319,8 @@ function Home2() {
           <div className="home2-results-list">
             {results.map((result, index) => (
               <div key={index}>
-                {/* Mostrar anuncio cada 3 resultados empezando en 0 */}
-                {(index % 3 === 0) && (
+                {/* Mostrar anuncio cada 3 resultados empezando después del primero */}
+                {(index === 1 || (index > 0 && index % 3 === 0)) && (
                   <div className="home2-ad-label">
                     
                     <AdSense 
@@ -308,13 +375,6 @@ function Home2() {
           </div>
         </div>
       )}
-
-      {/* Professor Modal */}
-      <ProfessorModal
-        isOpen={modalOpen}
-        onClose={handleCloseModal}
-        professorData={selectedProfessor}
-      />
 
       {/* Anuncio al Final */}
       {showResults && (
