@@ -6,6 +6,7 @@ import '../styles/Analytics.css';
 function ProfesoresMasVistos() {
   const navigate = useNavigate();
   const [topClickeados, setTopClickeados] = useState([]);
+  const [totalVistasAcumuladas, setTotalVistasAcumuladas] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,6 +16,7 @@ function ProfesoresMasVistos() {
         setLoading(true);
         const data = await apiClient.getProfesoresMasClickeados(20);
         setTopClickeados(data.data || []);
+        setTotalVistasAcumuladas(data.totalVistasAcumuladas || 0);
       } catch (err) {
         console.error('Error al cargar profesores más vistos:', err);
         setError('Error al cargar los datos');
@@ -69,7 +71,7 @@ function ProfesoresMasVistos() {
           <div className="stat-item">
             <span className="stat-label">Total de vistas</span>
             <span className="stat-value">
-              {topClickeados.reduce((sum, p) => sum + p.totalVistas, 0).toLocaleString()}
+              {totalVistasAcumuladas.toLocaleString()}
             </span>
           </div>
         </div>

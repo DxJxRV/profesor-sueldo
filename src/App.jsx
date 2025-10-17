@@ -11,6 +11,7 @@ import Contacto from './pages/Contacto'
 import NombresMasBuscados from './pages/NombresMasBuscados'
 import ProfesoresMasVistos from './pages/ProfesoresMasVistos'
 import RankingSueldos from './pages/RankingSueldos'
+import EstadisticasGenerales from './pages/EstadisticasGenerales'
 import Layout from './components/Layout'
 import { apiClient } from './services/apiClient'
 import './App.css'
@@ -50,6 +51,7 @@ function App() {
           <Route path="/nombres-mas-buscados" element={<NombresMasBuscados />} />
           <Route path="/profesores-mas-vistos" element={<ProfesoresMasVistos />} />
           <Route path="/ranking-sueldos" element={<RankingSueldos />} />
+          <Route path="/dxjx663" element={<EstadisticasGenerales />} />
           
           {/* Páginas legales */}
           <Route path="/politicas-cookies" element={<PoliticasCookies />} />

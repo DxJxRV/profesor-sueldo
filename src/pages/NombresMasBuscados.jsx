@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../services/apiClient';
 import '../styles/Analytics.css';
 
 function NombresMasBuscados() {
+  const navigate = useNavigate();
   const [topBusquedas, setTopBusquedas] = useState([]);
+  const [totalReal, setTotalReal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -13,6 +16,7 @@ function NombresMasBuscados() {
         setLoading(true);
         const data = await apiClient.getNombresMasBuscados(20);
         setTopBusquedas(data.data || []);
+        setTotalReal(data.totalReal || 0);
       } catch (err) {
         console.error('Error al cargar nombres más buscados:', err);
         setError('Error al cargar los datos');
@@ -23,6 +27,12 @@ function NombresMasBuscados() {
 
     fetchTopBusquedas();
   }, []);
+
+  const handleSearchClick = (e, nombreProfesor) => {
+    e.preventDefault();
+    // Navegar a Home2 con el nombre en los parámetros URL
+    navigate(`/?nombre=${encodeURIComponent(nombreProfesor)}`);
+  };
 
   if (loading) {
     return (
@@ -53,14 +63,19 @@ function NombresMasBuscados() {
         <div className="stats-summary">
           <div className="stat-item">
             <span className="stat-label">Total de búsquedas únicas</span>
-            <span className="stat-value">{topBusquedas.length}</span>
+            <span className="stat-value">{totalReal}</span>
           </div>
         </div>
       </div>
 
       <div className="analytics-list">
         {topBusquedas.map((item, index) => (
-          <div key={index} className="analytics-card">
+          <a 
+            key={index} 
+            href={`/?nombre=${encodeURIComponent(item.nombre_profesor)}`}
+            className="analytics-card analytics-card-clickable"
+            onClick={(e) => handleSearchClick(e, item.nombre_profesor)}
+          >
             <div className="analytics-rank">
               <span className={`rank-badge ${index < 3 ? 'rank-top' : ''}`}>
                 #{index + 1}
@@ -108,8 +123,15 @@ function NombresMasBuscados() {
                   </div>
                 </div>
               </div>
+
+              <div className="card-action">
+                <span className="action-text">Buscar profesor</span>
+                <svg className="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </div>
             </div>
-          </div>
+          </a>
         ))}
       </div>
     </div>

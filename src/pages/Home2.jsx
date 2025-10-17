@@ -22,6 +22,11 @@ function Home2() {
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 10;
 
+  // Scroll al inicio cuando se monta el componente
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   // Restaurar estado de búsqueda si viene del detalle de profesor o de URL params
   useEffect(() => {
     // Prioridad 1: Verificar si viene de página de detalle con state
@@ -474,6 +479,13 @@ function Home2() {
                         </svg>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="home2-card-action">
+                    <span className="home2-action-text">Ver detalles</span>
+                    <svg className="home2-action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
                   </div>
                 </a>
             ))}

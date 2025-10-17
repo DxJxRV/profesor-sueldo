@@ -421,6 +421,45 @@
   color: #94a3b8;
 }
 
+/* Card Action Button */
+.card-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.analytics-card-clickable:hover .card-action {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  border-color: #5a67d8;
+  transform: translateX(4px);
+}
+
+.action-text {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-arrow {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5;
+  transition: transform 0.3s ease;
+}
+
+.analytics-card-clickable:hover .action-arrow {
+  transform: translateX(4px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .analytics-container {

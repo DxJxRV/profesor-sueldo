@@ -193,6 +193,13 @@ function RankingSueldos() {
                   <span>{profesor.totalVistas} vistas</span>
                 </div>
               )}
+
+              <div className="card-action">
+                <span className="action-text">Ver detalles</span>
+                <svg className="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </div>
             </div>
           </div>
         ))}
