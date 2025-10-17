@@ -8,6 +8,9 @@ import PoliticasCookies from './pages/PoliticasCookies'
 import AvisoLegal from './pages/AvisoLegal'
 import PoliticaPrivacidad from './pages/PoliticaPrivacidad'
 import Contacto from './pages/Contacto'
+import NombresMasBuscados from './pages/NombresMasBuscados'
+import ProfesoresMasVistos from './pages/ProfesoresMasVistos'
+import RankingSueldos from './pages/RankingSueldos'
 import Layout from './components/Layout'
 import { apiClient } from './services/apiClient'
 import './App.css'
@@ -42,6 +45,13 @@ function App() {
           <Route path="/home2" element={<Home />} />
           <Route path="/profesor" element={<ProfessorRedirect />} />
           <Route path="/profesor/:professorId/:nombreCompleto" element={<ProfessorDetail />} />
+          
+          {/* Rutas de Analytics */}
+          <Route path="/nombres-mas-buscados" element={<NombresMasBuscados />} />
+          <Route path="/profesores-mas-vistos" element={<ProfesoresMasVistos />} />
+          <Route path="/ranking-sueldos" element={<RankingSueldos />} />
+          
+          {/* Páginas legales */}
           <Route path="/politicas-cookies" element={<PoliticasCookies />} />
           <Route path="/aviso-legal" element={<AvisoLegal />} />
           <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />

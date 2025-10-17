@@ -118,6 +118,56 @@ class ApiClient {
       method: 'GET',
     });
   }
+
+  /**
+   * Analytics: Nombres más buscados
+   */
+  async getNombresMasBuscados(limit = 20) {
+    console.log('📊 Obteniendo nombres más buscados');
+    return this.request(`/analytics/nombres-mas-buscados?limit=${limit}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Analytics: Profesores más clickeados
+   */
+  async getProfesoresMasClickeados(limit = 20) {
+    console.log('📊 Obteniendo profesores más clickeados');
+    return this.request(`/analytics/profesores-mas-clickeados?limit=${limit}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Analytics: Top sueldos (mayores)
+   */
+  async getTopSueldos(limit = 20) {
+    console.log('📊 Obteniendo top sueldos');
+    return this.request(`/analytics/top-sueldos?limit=${limit}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Analytics: Bottom sueldos (menores)
+   */
+  async getBottomSueldos(limit = 20) {
+    console.log('📊 Obteniendo bottom sueldos');
+    return this.request(`/analytics/bottom-sueldos?limit=${limit}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Analytics: Estadísticas generales
+   */
+  async getEstadisticasGenerales() {
+    console.log('📊 Obteniendo estadísticas generales');
+    return this.request('/analytics/estadisticas-generales', {
+      method: 'GET',
+    });
+  }
 }
 
 // Exportar una instancia única del cliente
