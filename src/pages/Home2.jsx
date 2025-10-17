@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import '../styles/Home2.css';
 import '../components/AdSense.css';
 import AdSense from '../components/AdSense';
@@ -8,6 +8,7 @@ import { apiClient } from '../services/apiClient';
 function Home2() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [professorName, setProfessorName] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -17,8 +18,9 @@ function Home2() {
   const [entidadesFederativas, setEntidadesFederativas] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Restaurar estado de búsqueda si viene del detalle de profesor
+  // Restaurar estado de búsqueda si viene del detalle de profesor o de URL params
   useEffect(() => {
+    // Prioridad 1: Verificar si viene de página de detalle con state
     if (location.state?.searchName) {
       const savedName = location.state.searchName;
       setProfessorName(savedName);
@@ -37,6 +39,9 @@ function Home2() {
         if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
           setEntidadesFederativas(data.entidadesFederativas);
         }
+        
+        // Actualizar URL con los parámetros de búsqueda
+        updateURLParams(savedName, null);
       })
       .catch(error => {
         console.error("❌ Error al restaurar búsqueda:", error);
@@ -51,9 +56,67 @@ function Home2() {
       return; // No ejecutar la búsqueda inicial
     }
     
-    // Búsqueda inicial solo si no hay estado restaurado
+    // Prioridad 2: Verificar si hay parámetros en la URL
+    const nombreParam = searchParams.get('nombre');
+    const entidadParam = searchParams.get('entidad');
+    
+    if (nombreParam) {
+      setProfessorName(nombreParam);
+      if (entidadParam) {
+        setSelectedEntidad(entidadParam);
+      }
+      performSearchFromURL(nombreParam, entidadParam);
+      return;
+    }
+    
+    // Prioridad 3: Búsqueda inicial por defecto
     performInitialSearch();
-  }, [location.state]);
+  }, [location.state]); // Solo depende de location.state, los params se manejan internamente
+
+  // Función para actualizar URL params sin recargar
+  const updateURLParams = (nombre, entidad) => {
+    const params = new URLSearchParams();
+    if (nombre) {
+      params.set('nombre', nombre);
+    }
+    if (entidad) {
+      params.set('entidad', entidad);
+    }
+    
+    // Actualizar URL sin recargar (replace para no agregar a historial)
+    if (nombre) {
+      setSearchParams(params, { replace: true });
+    }
+  };
+
+  // Búsqueda desde parámetros URL
+  const performSearchFromURL = async (nombre, entidad) => {
+    setLoading(true);
+    
+    try {
+      const data = await apiClient.consultarProfesores({
+        contenido: nombre,
+        cantidad: 200,
+        numeroPagina: 0,
+        ...(entidad && { entidadFederativa: entidad })
+      });
+
+      console.log("✅ Resultado desde URL:", data);
+      setResults(data.datosSolr || []);
+      setShowResults(true);
+      setHasSearched(true);
+      
+      if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
+        setEntidadesFederativas(data.entidadesFederativas);
+      }
+      
+    } catch (error) {
+      console.error("❌ Error en búsqueda desde URL:", error);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const performInitialSearch = async () => {
     setProfessorName('Sheinbaum');
@@ -126,6 +189,9 @@ function Home2() {
           setEntidadesFederativas(data.entidadesFederativas);
         }
         
+        // Actualizar URL con parámetros de búsqueda
+        updateURLParams(professorName, null);
+        
       } catch (error) {
         console.error("❌ Error en la solicitud:", error);
         alert(`Error al buscar información: ${error.message}`);
@@ -166,6 +232,9 @@ function Home2() {
       setResults(data.datosSolr || []);
       setIsFilterOpen(false); // Colapsar filtros después de la búsqueda
       
+      // Actualizar URL con nombre y entidad
+      updateURLParams(professorName, entidad);
+      
     } catch (error) {
       console.error("❌ Error en la búsqueda filtrada:", error);
       alert(`Error al filtrar resultados: ${error.message}`);
@@ -188,6 +257,9 @@ function Home2() {
       console.log("✅ Resultado original:", data);
       setResults(data.datosSolr || []);
       
+      // Actualizar URL sin entidad (solo nombre)
+      updateURLParams(professorName, null);
+      
     } catch (error) {
       console.error("❌ Error en la búsqueda original:", error);
       alert(`Error al ejecutar búsqueda: ${error.message}`);
@@ -196,7 +268,9 @@ function Home2() {
     }
   };
 
-  const handleCardClick = (professorData) => {
+  const handleCardClick = (e, professorData) => {
+    e.preventDefault(); // Prevenir navegación por defecto del <a>
+    
     // Guardar solo el nombre de búsqueda actual
     const searchName = professorName;
     
@@ -205,6 +279,12 @@ function Home2() {
     navigate(`/profesor/${professorData.professorId}/${encodedName}`, {
       state: { searchName }
     });
+  };
+
+  // Función para generar la URL del profesor
+  const getProfessorURL = (professorData) => {
+    const encodedName = encodeURIComponent(professorData.nombre);
+    return `/profesor/${professorData.professorId}/${encodedName}`;
   };
 
   return (
@@ -320,7 +400,7 @@ function Home2() {
             {results.map((result, index) => (
               <div key={index}>
                 {/* Mostrar anuncio cada 3 resultados empezando después del primero */}
-                {(index === 1 || (index > 0 && index % 3 === 0)) && (
+                {/* {(index === 1 || (index > 0 && index % 3 === 0)) && (
                   <div className="home2-ad-label">
                     
                     <AdSense 
@@ -330,46 +410,50 @@ function Home2() {
                     />
 
                   </div>
-                )}
+                )} */}
                 
-                <div className="home2-result-card" onClick={() => handleCardClick(result)}>
-                <div className="home2-result-header">
-                  <h3 className="home2-professor-name">{result.nombre}</h3>
-                  <div className="home2-professor-info">
-                    <div className="home2-info-item">
-                      <svg className="home2-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
-                      </svg>
-                      <span className="home2-info-text">{result.sujetoObligado}</span>
-                    </div>
-                    <div className="home2-info-item">
-                      <svg className="home2-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
-                      </svg>
-                      <span className="home2-info-text">{result.entidadFederativa}</span>
+                <a 
+                  href={getProfessorURL(result)}
+                  className="home2-result-card home2-result-link" 
+                  onClick={(e) => handleCardClick(e, result)}
+                >
+                  <div className="home2-result-header">
+                    <h3 className="home2-professor-name">{result.nombre}</h3>
+                    <div className="home2-professor-info">
+                      <div className="home2-info-item">
+                        <svg className="home2-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span className="home2-info-text">{result.sujetoObligado}</span>
+                      </div>
+                      <div className="home2-info-item">
+                        <svg className="home2-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span className="home2-info-text">{result.entidadFederativa}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="home2-salary-info">
-                  <div className="home2-salary-item">
-                    <div className="home2-salary-label">SUELDO ACTUAL</div>
-                    <div className="home2-salary-value home2-salary-actual">{result.sueldoActual}</div>
-                  </div>
-                  <div className="home2-salary-item">
-                    <div className="home2-salary-label">SUELDO MÁXIMO</div>
-                    <div className="home2-salary-value home2-salary-max">
-                      {result.sueldoMax.monto}
-                      <svg className="home2-trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <polyline points="23,6 13.5,15.5 8.5,10.5 1,18"></polyline>
-                        <polyline points="17,6 23,6 23,12"></polyline>
-                      </svg>
+                  <div className="home2-salary-info">
+                    <div className="home2-salary-item">
+                      <div className="home2-salary-label">SUELDO ACTUAL</div>
+                      <div className="home2-salary-value home2-salary-actual">{result.sueldoActual}</div>
+                    </div>
+                    <div className="home2-salary-item">
+                      <div className="home2-salary-label">SUELDO MÁXIMO</div>
+                      <div className="home2-salary-value home2-salary-max">
+                        {result.sueldoMax.monto}
+                        <svg className="home2-trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <polyline points="23,6 13.5,15.5 8.5,10.5 1,18"></polyline>
+                          <polyline points="17,6 23,6 23,12"></polyline>
+                        </svg>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </a>
               </div>
             ))}
           </div>
@@ -377,13 +461,13 @@ function Home2() {
       )}
 
       {/* Anuncio al Final */}
-      {showResults && (
+      {/* {showResults && (
         <AdSense 
           adSlot="3456789012"
           className="adsense-container adsense-bottom"
           style={{ display: 'block', minHeight: '250px' }}
         />
-      )}
+      )} */}
     </div>
   );
 }
