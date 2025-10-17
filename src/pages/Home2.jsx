@@ -445,7 +445,7 @@ function Home2() {
                     <AdSense 
                       adSlot="1234567890"
                       className="adsense-container"
-                      style={{ display: 'block', minHeight: '250px', margin: '1rem 0' }}
+                      style={{ display: 'block', margin: '1rem 0' }}
                     />
                   </div>
                 )}
