@@ -280,7 +280,7 @@ function Home() {
         
       } catch (error) {
         console.error("❌ Error en la solicitud:", error);
-        alert(`Error al buscar información: ${error.message}`);
+        alert(`Error al buscar información: `);
         setResults([]);
         setShowResults(false);
       } finally {
@@ -338,7 +338,7 @@ function Home() {
       
     } catch (error) {
       console.error("❌ Error en la búsqueda filtrada:", error);
-      alert(`Error al filtrar resultados: ${error.message}`);
+      alert(`Error al filtrar resultados: `);
     } finally {
       setLoading(false);
     }
@@ -380,7 +380,7 @@ function Home() {
       
     } catch (error) {
       console.error("❌ Error en la búsqueda original:", error);
-      alert(`Error al buscar información: ${error.message}`);
+      alert(`Error al buscar información: `);
     } finally {
       setLoading(false);
     }

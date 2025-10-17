@@ -203,7 +203,7 @@ function Home2() {
         
       } catch (error) {
         console.error("❌ Error en la solicitud:", error);
-        alert(`Error al buscar información: ${error.message}`);
+        alert(`Error al buscar información`);
         setResults([]);
         setShowResults(false);
       } finally {
@@ -246,7 +246,7 @@ function Home2() {
       
     } catch (error) {
       console.error("❌ Error en la búsqueda filtrada:", error);
-      alert(`Error al filtrar resultados: ${error.message}`);
+      alert(`Error al filtrar resultados: `);
     } finally {
       setLoading(false);
     }
@@ -271,7 +271,7 @@ function Home2() {
       
     } catch (error) {
       console.error("❌ Error en la búsqueda original:", error);
-      alert(`Error al ejecutar búsqueda: ${error.message}`);
+      alert(`Error al ejecutar búsqueda: `);
     } finally {
       setLoading(false);
     }
