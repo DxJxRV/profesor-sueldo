@@ -438,12 +438,24 @@ function Home2() {
 
           <div className="home2-results-list">
             {currentResults.map((result, index) => (
-              <a 
-                key={index}
-                href={getProfessorURL(result)}
-                className="home2-result-card home2-result-link" 
-                onClick={(e) => handleCardClick(e, result)}
-              >
+              <>
+                {/* Anuncios en posiciones específicas */}
+                {(index === 1 || index === 4 || index === 7) && (
+                  <div key={`ad-${index}`} className="home2-ad-container">
+                    <AdSense 
+                      adSlot="1234567890"
+                      className="adsense-container"
+                      style={{ display: 'block', minHeight: '250px', margin: '1rem 0' }}
+                    />
+                  </div>
+                )}
+                
+                <a 
+                  key={index}
+                  href={getProfessorURL(result)}
+                  className="home2-result-card home2-result-link" 
+                  onClick={(e) => handleCardClick(e, result)}
+                >
                   <div className="home2-result-header">
                     <h3 className="home2-professor-name">{result.nombre}</h3>
                     <div className="home2-professor-info">
@@ -488,6 +500,7 @@ function Home2() {
                     </svg>
                   </div>
                 </a>
+              </>
             ))}
           </div>
 
