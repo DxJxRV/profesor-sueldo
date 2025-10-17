@@ -17,6 +17,10 @@ function Home2() {
   const [selectedEntidad, setSelectedEntidad] = useState(null);
   const [entidadesFederativas, setEntidadesFederativas] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const resultsPerPage = 10;
 
   // Restaurar estado de búsqueda si viene del detalle de profesor o de URL params
   useEffect(() => {
@@ -287,6 +291,37 @@ function Home2() {
     return `/profesor/${professorData.professorId}/${encodedName}`;
   };
 
+  // Funciones de paginación
+  const indexOfLastResult = currentPage * resultsPerPage;
+  const indexOfFirstResult = indexOfLastResult - resultsPerPage;
+  const currentResults = results.slice(indexOfFirstResult, indexOfLastResult);
+  const totalPages = Math.ceil(results.length / resultsPerPage);
+
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Scroll suave al inicio de los resultados
+    window.scrollTo({ top: 400, behavior: 'smooth' });
+  };
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo({ top: 400, behavior: 'smooth' });
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo({ top: 400, behavior: 'smooth' });
+    }
+  };
+
+  // Resetear paginación cuando cambien los resultados
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [results]);
+
   return (
     <div className="home2-container">
       {/* Hero Section */}
@@ -397,26 +432,13 @@ function Home2() {
           </div>
 
           <div className="home2-results-list">
-            {results.map((result, index) => (
-              <div key={index}>
-                {/* Mostrar anuncio cada 3 resultados empezando después del primero */}
-                {/* {(index === 1 || (index > 0 && index % 3 === 0)) && (
-                  <div className="home2-ad-label">
-                    
-                    <AdSense 
-                      adSlot="2345678901"
-                      className="adsense-container adsense-middle"
-                      style={{ display: 'block', minHeight: '250px' }}
-                    />
-
-                  </div>
-                )} */}
-                
-                <a 
-                  href={getProfessorURL(result)}
-                  className="home2-result-card home2-result-link" 
-                  onClick={(e) => handleCardClick(e, result)}
-                >
+            {currentResults.map((result, index) => (
+              <a 
+                key={index}
+                href={getProfessorURL(result)}
+                className="home2-result-card home2-result-link" 
+                onClick={(e) => handleCardClick(e, result)}
+              >
                   <div className="home2-result-header">
                     <h3 className="home2-professor-name">{result.nombre}</h3>
                     <div className="home2-professor-info">
@@ -454,9 +476,63 @@ function Home2() {
                     </div>
                   </div>
                 </a>
-              </div>
             ))}
           </div>
+
+          {/* Paginador */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button 
+                className="pagination-button pagination-prev"
+                onClick={prevPage}
+                disabled={currentPage === 1}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span>Anterior</span>
+              </button>
+
+              <div className="pagination-numbers">
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  // Mostrar primera, última y páginas cercanas a la actual
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNumber}
+                        className={`pagination-number ${currentPage === pageNumber ? 'active' : ''}`}
+                        onClick={() => paginate(pageNumber)}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  } else if (
+                    pageNumber === currentPage - 2 ||
+                    pageNumber === currentPage + 2
+                  ) {
+                    return <span key={pageNumber} className="pagination-ellipsis">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button 
+                className="pagination-button pagination-next"
+                onClick={nextPage}
+                disabled={currentPage === totalPages}
+              >
+                <span>Siguiente</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
