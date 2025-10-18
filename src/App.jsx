@@ -39,28 +39,35 @@ function App() {
  // Solo se ejecuta una vez al montar el componente
 
   return (
-    <Router>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Home2 />} />
-          <Route path="/home2" element={<Home />} />
-          <Route path="/profesor" element={<ProfessorRedirect />} />
-          <Route path="/profesor/:professorId/:nombreCompleto" element={<ProfessorDetail />} />
-          
-          {/* Rutas de Analytics */}
-          <Route path="/nombres-mas-buscados" element={<NombresMasBuscados />} />
-          <Route path="/profesores-mas-vistos" element={<ProfesoresMasVistos />} />
-          <Route path="/ranking-sueldos" element={<RankingSueldos />} />
-          <Route path="/dxjx663" element={<EstadisticasGenerales />} />
-          
-          {/* Páginas legales */}
-          <Route path="/politicas-cookies" element={<PoliticasCookies />} />
-          <Route path="/aviso-legal" element={<AvisoLegal />} />
-          <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
-          <Route path="/contacto" element={<Contacto />} />
-        </Route>
-      </Routes>
-    </Router>
+    <>
+      <Router>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home2 />} />
+            <Route path="/home2" element={<Home />} />
+            <Route path="/profesor" element={<ProfessorRedirect />} />
+            <Route path="/profesor/:professorId/:nombreCompleto" element={<ProfessorDetail />} />
+            
+            {/* Rutas de Analytics */}
+            <Route path="/nombres-mas-buscados" element={<NombresMasBuscados />} />
+            <Route path="/profesores-mas-vistos" element={<ProfesoresMasVistos />} />
+            <Route path="/ranking-sueldos" element={<RankingSueldos />} />
+            <Route path="/dxjx663" element={<EstadisticasGenerales />} />
+            
+            {/* Páginas legales */}
+            <Route path="/politicas-cookies" element={<PoliticasCookies />} />
+            <Route path="/aviso-legal" element={<AvisoLegal />} />
+            <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
+            <Route path="/contacto" element={<Contacto />} />
+          </Route>
+        </Routes>
+      </Router>
+      
+      {/* Mensaje fijo en la parte inferior */}
+      <div className="bottom-support-message">
+        ❤️ Los anuncios nos permiten mantener la app gratuita ❤️
+      </div>
+    </>
   )
 }
 
