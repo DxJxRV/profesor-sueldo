@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:ssg": "npm run build && node scripts/prerender.js",
+    "prerender": "node scripts/prerender.js",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:ssg": "npm run build:ssg && vite preview"
   },
   "dependencies": {
     "chart.js": "^4.5.0",
@@ -21,7 +24,9 @@
     "react-helmet": "^6.1.0",
     "react-router-dom": "^7.9.3",
     "recharts": "^3.2.1",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "vike": "^0.4.247",
+    "vike-react": "^0.6.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

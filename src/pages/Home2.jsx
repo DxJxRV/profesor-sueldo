@@ -332,10 +332,10 @@ function Home2() {
       {/* Hero Section */}
       <div className="home2-hero">
         <div className="home2-hero-content">
-          <h1 className="home2-title">¿Cuánto gana mi profesor?</h1>
+          <h1 className="home2-title">¿Cuánto gana mi servidor público?</h1>
           <p className="home2-subtitle">
-            Consulta información salarial de profesores en<br />
-            cualquier institución pública de México
+            Gobernadores | SEP | IMSS | Institutos | Secretarías<br />
+            Consulta información salarial de cualquier servidor público de México
           </p>
         </div>
       </div>
@@ -346,7 +346,7 @@ function Home2() {
           <form onSubmit={handleSubmit}>
             {/* Search Input */}
             <div className="home2-input-group">
-              <label className="home2-input-label">Nombre del profesor</label>
+              <label className="home2-input-label">Nombre del servidor público</label>
               <div className="home2-input-container">
                 <svg className="home2-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <circle cx="11" cy="11" r="8"></circle>
@@ -356,7 +356,7 @@ function Home2() {
                   type="text"
                   value={professorName}
                   onChange={(e) => setProfessorName(e.target.value)}
-                  placeholder="Ingresa el nombre completo del profesor..."
+                  placeholder="Ingresa el nombre del servidor público..."
                   className="home2-search-input"
                 />
               </div>
@@ -412,8 +412,8 @@ function Home2() {
             )}
 
             {/* Search Button */}
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="home2-search-button"
               disabled={loading}
             >
@@ -421,7 +421,7 @@ function Home2() {
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="21 21l-4.35-4.35"></path>
               </svg>
-              {loading ? "Buscando..." : "Buscar profesor"}
+              {loading ? "Buscando..." : "Buscar servidor público"}
             </button>
           </form>
         </div>

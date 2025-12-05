@@ -14,6 +14,10 @@ import RankingSueldos from './pages/RankingSueldos'
 import EstadisticasGenerales from './pages/EstadisticasGenerales'
 import Layout from './components/Layout'
 import { apiClient } from './services/apiClient'
+// SEO Pages
+import ProfesionPage from './pages/seo/ProfesionPage'
+import EstadoPage from './pages/seo/EstadoPage'
+import InstitucionPage from './pages/seo/InstitucionPage'
 import './App.css'
 
 function App() {
@@ -53,7 +57,12 @@ function App() {
             <Route path="/profesores-mas-vistos" element={<ProfesoresMasVistos />} />
             <Route path="/ranking-sueldos" element={<RankingSueldos />} />
             <Route path="/dxjx663" element={<EstadisticasGenerales />} />
-            
+
+            {/* Rutas SEO - Páginas estáticas generadas */}
+            <Route path="/cuanto-gana/:profesionSlug" element={<ProfesionPage />} />
+            <Route path="/salarios/por-estado/:estadoSlug" element={<EstadoPage />} />
+            <Route path="/salarios/por-institucion/:institucionSlug" element={<InstitucionPage />} />
+
             {/* Páginas legales */}
             <Route path="/politicas-cookies" element={<PoliticasCookies />} />
             <Route path="/aviso-legal" element={<AvisoLegal />} />
