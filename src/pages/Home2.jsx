@@ -1,10 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { FaSearch, FaShareAlt, FaSpinner, FaFire, FaUser } from 'react-icons/fa';
 import '../styles/Home2.css';
 import '../components/AdSense.css';
 import AdSense from '../components/AdSense';
 import { apiClient } from '../services/apiClient';
 import { getHistorial, addToHistorial, removeFromHistorial } from '../utils/historial';
+import {
+  getUtmKeyFromUrl,
+  fetchUtmConfig,
+  trackUtmView,
+  trackUtmClick,
+  getUtmStyles,
+  getUtmText,
+  getSuggestedProfessor,
+  trackUtmEvent
+} from '../utils/utmConfig';
 
 function Home2() {
   const navigate = useNavigate();
@@ -29,6 +40,15 @@ function Home2() {
   const [masBuscados, setMasBuscados] = useState([]);
   const [isLoadingMasBuscados, setIsLoadingMasBuscados] = useState(false);
 
+  // Estados para UTM Config
+  const [utmConfig, setUtmConfig] = useState(null);
+  const [utmKey, setUtmKey] = useState(null);
+  const [utmLoading, setUtmLoading] = useState(true);
+
+  // Estados para Targeted Messages
+  const [targetedMessages, setTargetedMessages] = useState([]);
+  const [showTargetedMessage, setShowTargetedMessage] = useState(true);
+
   // Ref para manejar clicks fuera del dropdown
   const dropdownRef = useRef(null);
 
@@ -37,10 +57,69 @@ function Home2() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  // Cargar configuración UTM si existe
+  useEffect(() => {
+    const loadUtmConfig = async () => {
+      const key = getUtmKeyFromUrl(searchParams);
+
+      if (!key) {
+        setUtmLoading(false);
+        return;
+      }
+
+      console.log('🎯 UTM Key detectado:', key);
+      setUtmKey(key);
+
+      const config = await fetchUtmConfig(key);
+
+      if (config) {
+        console.log('✅ Configuración UTM cargada:', config);
+        setUtmConfig(config);
+
+        // Registrar vista automáticamente
+        await trackUtmView(key);
+
+        // Tracking GA4
+        trackUtmEvent('utm_landing_detected', {
+          utm_key: key,
+          utm_title: config.title
+        });
+
+        // Si hay un profesor sugerido, pre-llenar el input
+        const suggestedProf = getSuggestedProfessor(config);
+        if (suggestedProf && suggestedProf.name) {
+          setProfessorName(suggestedProf.name);
+        }
+      }
+
+      setUtmLoading(false);
+    };
+
+    loadUtmConfig();
+  }, [searchParams]);
+
   // Cargar historial desde localStorage al montar
   useEffect(() => {
     const historialGuardado = getHistorial();
     setHistorial(historialGuardado);
+  }, []);
+
+  // Cargar mensajes dirigidos para el usuario actual
+  useEffect(() => {
+    const fetchTargetedMessages = async () => {
+      try {
+        const response = await apiClient.getActiveTargetedMessages();
+        if (response?.data && response.data.length > 0) {
+          setTargetedMessages(response.data);
+          // Registrar vista del primer mensaje
+          await apiClient.incrementTargetedMessageShowCount(response.data[0].id);
+        }
+      } catch (error) {
+        console.error('Error al cargar mensajes dirigidos:', error);
+      }
+    };
+
+    fetchTargetedMessages();
   }, []);
 
   // Cargar nombres más buscados desde el backend
@@ -289,6 +368,43 @@ function Home2() {
     setHistorial(nuevoHistorial);
   };
 
+  // Compartir búsqueda de una persona usando Web Share API
+  const handleShare = async (e, result) => {
+    e.preventDefault(); // Prevenir navegación
+    e.stopPropagation(); // Prevenir que se dispare el click del card
+
+    const shareUrl = `${window.location.origin}/?nombre=${encodeURIComponent(result.nombre)}`;
+    const shareData = {
+      title: `¿Cuánto gana ${result.nombre}?`,
+      text: `Consulta el sueldo de ${result.nombre} - ${result.sujetoObligado} en Sueldos México`,
+      url: shareUrl
+    };
+
+    try {
+      // Verificar si el navegador soporta Web Share API
+      if (navigator.share) {
+        await navigator.share(shareData);
+        console.log('✅ Compartido exitosamente');
+      } else {
+        // Fallback: copiar al clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        alert('✅ Link copiado al portapapeles');
+      }
+    } catch (error) {
+      // El usuario canceló o hubo un error
+      if (error.name !== 'AbortError') {
+        console.error('❌ Error al compartir:', error);
+        // Fallback: intentar copiar al clipboard
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          alert('✅ Link copiado al portapapeles');
+        } catch (clipboardError) {
+          console.error('❌ Error al copiar:', clipboardError);
+        }
+      }
+    }
+  };
+
   // ============================================
   // FIN FUNCIONES DROPDOWN
   // ============================================
@@ -303,6 +419,15 @@ function Home2() {
 
       // Cerrar dropdown si está abierto
       setShowDropdown(false);
+
+      // Tracking UTM: registrar click si hay configuración UTM activa
+      if (utmKey) {
+        await trackUtmClick(utmKey);
+        trackUtmEvent('utm_custom_click', {
+          utm_key: utmKey,
+          search_query: professorName
+        });
+      }
 
       try {
         const data = await apiClient.consultarProfesores({
@@ -458,15 +583,286 @@ function Home2() {
   return (
     <div className="home2-container">
       {/* Hero Section */}
-      <div className="home2-hero">
+      <div className="home2-hero" style={utmConfig ? getUtmStyles(utmConfig) : {}}>
         <div className="home2-hero-content">
-          <h1 className="home2-title">¿Cuánto gana mi servidor público?</h1>
-          <p className="home2-subtitle">
-            Gobernadores | SEP | IMSS | Institutos | Secretarías<br />
-            Consulta información salarial de cualquier servidor público de México
+          <h1 className="home2-title" style={utmConfig && utmConfig.text_color ? { color: utmConfig.text_color } : {}}>
+            {utmConfig ? getUtmText(utmConfig, 'title', '¿Cuánto gana mi servidor público?') : '¿Cuánto gana mi servidor público?'}
+          </h1>
+          <p className="home2-subtitle" style={utmConfig && utmConfig.text_color ? { color: utmConfig.text_color } : {}}>
+            {utmConfig && utmConfig.subtitle
+              ? utmConfig.subtitle
+              : 'Gobernadores | SEP | IMSS | Institutos | Secretarías'}
+            <br />
+            {!utmConfig && 'Consulta información salarial de cualquier servidor público de México'}
           </p>
+
+          {/* Mensaje especial personalizado si existe */}
+          {utmConfig && utmConfig.special_message && (
+            <div style={{
+              marginTop: '2rem',
+              padding: '1.5rem 2rem',
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 250, 255, 0.95) 100%)',
+              borderRadius: '1rem',
+              border: '1px solid rgba(99, 102, 241, 0.2)',
+              boxShadow: '0 8px 32px -8px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+              color: '#1e293b',
+              fontSize: '1.125rem',
+              fontWeight: 500,
+              textAlign: 'center',
+              backdropFilter: 'blur(10px)',
+              lineHeight: '1.6',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '3px',
+                background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)'
+              }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <p style={{ margin: '0 0 1rem 0' }}>
+                  {utmConfig.special_message}
+                </p>
+
+                {/* Mostrar profesor sugerido si existe */}
+                {getSuggestedProfessor(utmConfig) && (
+                  <div style={{
+                    marginTop: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}>
+                    <div style={{
+                      fontSize: '1.25rem',
+                      fontWeight: 600,
+                      color: '#4f46e5',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      flexWrap: 'wrap',
+                      justifyContent: 'center'
+                    }}>
+                      <span>👤</span>
+                      <span>{getSuggestedProfessor(utmConfig).name}</span>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Ejecutar búsqueda
+                        if (!loading) {
+                          handleSubmit(e);
+                          // Scroll suave hacia los resultados después de un breve delay
+                          setTimeout(() => {
+                            window.scrollTo({
+                              top: 800,
+                              behavior: 'smooth'
+                            });
+                          }, 500);
+                        }
+                      }}
+                      style={{
+                        padding: '0.875rem 2rem',
+                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '0.75rem',
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        opacity: loading ? 0.6 : 1
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!loading) {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 6px 16px rgba(99, 102, 241, 0.4)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+                      }}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <FaSpinner size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                          <span>Buscando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaSearch size={20} />
+                          <span>Buscar información</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <style>{`
+                @keyframes spin {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
+            </div>
+          )}
+
+          {/* Imagen personalizada si existe */}
+          {utmConfig && utmConfig.image_url && (
+            <div style={{
+              marginTop: '1.5rem',
+              display: 'flex',
+              justifyContent: 'center'
+            }}>
+              <img
+                src={utmConfig.image_url}
+                alt="Banner personalizado"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '300px',
+                  borderRadius: '0.75rem',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Targeted Message Banner - for returning users */}
+      {targetedMessages.length > 0 && showTargetedMessage && (
+        <div style={{
+          maxWidth: '1200px',
+          margin: '2rem auto',
+          padding: '0 1rem'
+        }}>
+          <div style={{
+            backgroundColor: targetedMessages[0].background_color || '#8b5cf6',
+            color: targetedMessages[0].text_color || '#ffffff',
+            padding: '1.5rem',
+            borderRadius: '1rem',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+            position: 'relative',
+            animation: 'slideDown 0.5s ease-out'
+          }}>
+            {/* Botón de cerrar */}
+            <button
+              onClick={() => setShowTargetedMessage(false)}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '2rem',
+                height: '2rem',
+                cursor: 'pointer',
+                fontSize: '1.25rem',
+                color: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+              }}
+              aria-label="Cerrar mensaje"
+            >
+              ×
+            </button>
+
+            <div style={{ paddingRight: '2rem' }}>
+              <h3 style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                marginBottom: '0.5rem',
+                color: 'inherit'
+              }}>
+                {targetedMessages[0].title}
+              </h3>
+
+              {targetedMessages[0].subtitle && (
+                <p style={{
+                  fontSize: '1rem',
+                  marginBottom: '0.75rem',
+                  opacity: 0.9,
+                  color: 'inherit'
+                }}>
+                  {targetedMessages[0].subtitle}
+                </p>
+              )}
+
+              <p style={{
+                fontSize: '1rem',
+                lineHeight: '1.6',
+                marginBottom: targetedMessages[0].button_text ? '1rem' : '0',
+                color: 'inherit'
+              }}>
+                {targetedMessages[0].message}
+              </p>
+
+              {targetedMessages[0].button_text && targetedMessages[0].button_url && (
+                <a
+                  href={targetedMessages[0].button_url}
+                  onClick={async () => {
+                    await apiClient.incrementTargetedMessageClickCount(targetedMessages[0].id);
+                  }}
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    color: 'inherit',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.5rem',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                    e.target.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {targetedMessages[0].button_text}
+                </a>
+              )}
+            </div>
+
+            <style>{`
+              @keyframes slideDown {
+                from {
+                  opacity: 0;
+                  transform: translateY(-20px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+            `}</style>
+          </div>
+        </div>
+      )}
 
       {/* Search Section */}
       <div className="home2-search-section">
@@ -476,7 +872,7 @@ function Home2() {
             <div className="home2-input-group" ref={dropdownRef}>
               <label className="home2-input-label">Nombre del servidor público</label>
               <div style={{ position: 'relative' }}>
-                <div className="home2-input-container">
+                <div className="home2-input-container" style={{ paddingRight: '3.5rem' }}>
                   <svg className="home2-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <circle cx="11" cy="11" r="8"></circle>
                     <path d="21 21l-4.35-4.35"></path>
@@ -484,12 +880,62 @@ function Home2() {
                   <input
                     type="text"
                     value={professorName}
-                    onChange={(e) => setProfessorName(e.target.value)}
+                    onChange={(e) => {
+                      setProfessorName(e.target.value);
+                      // Cerrar dropdown cuando el usuario empieza a escribir
+                      if (e.target.value.length > 0) {
+                        setShowDropdown(false);
+                      }
+                    }}
                     onFocus={handleInputFocus}
+                    onKeyDown={(e) => {
+                      // Ejecutar búsqueda al presionar Enter
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }
+                    }}
                     placeholder="Ingresa el nombre del servidor público..."
                     className="home2-search-input"
                     autoComplete="off"
+                    style={{ paddingRight: '3.5rem' }}
                   />
+                  {/* Botón de búsqueda dentro del input */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: '0.5rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '2.5rem',
+                      height: '2.5rem',
+                      backgroundColor: '#1f2937',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#111827';
+                      e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#1f2937';
+                      e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                    }}
+                    disabled={loading}
+                  >
+                    <FaSearch size={20} color="white" />
+                  </button>
                 </div>
 
                 {/* Top 3 más buscados + sugerencias - Badges debajo del input */}
@@ -519,24 +965,29 @@ function Home2() {
                         style={{
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.875rem',
-                          backgroundColor: '#f3f4f6',
-                          border: '1px solid #e5e7eb',
+                          backgroundColor: '#fef3c7',
+                          border: '1px solid #fbbf24',
                           borderRadius: '9999px',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                           whiteSpace: 'nowrap',
-                          color: '#374151'
+                          color: '#92400e',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                          fontWeight: 600
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#e5e7eb';
-                          e.target.style.borderColor = '#d1d5db';
+                          e.currentTarget.style.backgroundColor = '#fde68a';
+                          e.currentTarget.style.borderColor = '#f59e0b';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = '#f3f4f6';
-                          e.target.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.backgroundColor = '#fef3c7';
+                          e.currentTarget.style.borderColor = '#fbbf24';
                         }}
                       >
-                        🔥 {item.nombre_profesor}
+                        <FaFire size={14} color="#dc2626" />
+                        {item.nombre_profesor}
                       </button>
                     ))}
 
@@ -549,24 +1000,29 @@ function Home2() {
                         style={{
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.875rem',
-                          backgroundColor: '#f3f4f6',
-                          border: '1px solid #e5e7eb',
+                          backgroundColor: '#eff6ff',
+                          border: '1px solid #93c5fd',
                           borderRadius: '9999px',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                           whiteSpace: 'nowrap',
-                          color: '#374151'
+                          color: '#1e40af',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                          fontWeight: 500
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#e5e7eb';
-                          e.target.style.borderColor = '#d1d5db';
+                          e.currentTarget.style.backgroundColor = '#dbeafe';
+                          e.currentTarget.style.borderColor = '#60a5fa';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = '#f3f4f6';
-                          e.target.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.backgroundColor = '#eff6ff';
+                          e.currentTarget.style.borderColor = '#93c5fd';
                         }}
                       >
-                        👤 Tu {termino}
+                        <FaUser size={12} color="#3b82f6" />
+                        Tu {termino}
                       </button>
                     ))}
                   </div>
@@ -668,9 +1124,13 @@ function Home2() {
                           textTransform: 'uppercase',
                           fontWeight: 600,
                           backgroundColor: '#f9fafb',
-                          borderBottom: '1px solid #f3f4f6'
+                          borderBottom: '1px solid #f3f4f6',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
                         }}>
-                          🔥 Más buscados
+                          <FaFire size={12} color="#dc2626" />
+                          Más buscados
                         </div>
                         {isLoadingMasBuscados ? (
                           <div style={{
@@ -792,7 +1252,11 @@ function Home2() {
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="21 21l-4.35-4.35"></path>
               </svg>
-              {loading ? "Buscando..." : "Buscar servidor público"}
+              {loading
+                ? "Buscando..."
+                : utmConfig && utmConfig.button_text
+                ? utmConfig.button_text
+                : "Buscar servidor público"}
             </button>
           </form>
         </div>
@@ -821,12 +1285,39 @@ function Home2() {
                   </div>
                 )} */}
                 
-                <a 
+                <a
                   key={index}
                   href={getProfessorURL(result)}
-                  className="home2-result-card home2-result-link" 
+                  className="home2-result-card home2-result-link"
                   onClick={(e) => handleCardClick(e, result)}
+                  style={{ position: 'relative' }}
                 >
+                  {/* Icono de compartir en esquina superior derecha */}
+                  <div
+                    onClick={(e) => handleShare(e, result)}
+                    style={{
+                      position: 'absolute',
+                      top: '1rem',
+                      right: '1rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      zIndex: 10,
+                      padding: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                    title="Compartir"
+                  >
+                    <FaShareAlt size={20} color="#6b7280" />
+                  </div>
+
                   <div className="home2-result-header">
                     <h3 className="home2-professor-name">{result.nombre}</h3>
                     <div className="home2-professor-info">

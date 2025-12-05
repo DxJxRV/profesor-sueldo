@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../services/apiClient';
 import '../styles/Analytics.css';
+import DashboardUtmConfig from '../components/DashboardUtmConfig';
 
 function EstadisticasGenerales() {
   const [estadisticas, setEstadisticas] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('estadisticas'); // 'estadisticas' o 'utm'
 
   useEffect(() => {
     const fetchEstadisticas = async () => {
@@ -51,11 +53,62 @@ function EstadisticasGenerales() {
   return (
     <div className="analytics-container">
       <div className="analytics-header">
-        <h1 className="analytics-title">📊 Estadísticas Generales</h1>
+        <h1 className="analytics-title">📊 Panel de Administración</h1>
         <p className="analytics-subtitle">
-          Resumen de la actividad del sistema
+          Estadísticas y configuraciones del sistema
         </p>
       </div>
+
+      {/* Tabs */}
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem',
+        marginBottom: '2rem',
+        borderBottom: '2px solid #e5e7eb',
+        paddingBottom: '0'
+      }}>
+        <button
+          onClick={() => setActiveTab('estadisticas')}
+          style={{
+            padding: '0.75rem 1.5rem',
+            backgroundColor: activeTab === 'estadisticas' ? '#3b82f6' : 'transparent',
+            color: activeTab === 'estadisticas' ? 'white' : '#6b7280',
+            border: 'none',
+            borderBottom: activeTab === 'estadisticas' ? '3px solid #3b82f6' : 'none',
+            borderRadius: '0.5rem 0.5rem 0 0',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '1rem',
+            transition: 'all 0.2s'
+          }}
+        >
+          📊 Estadísticas Generales
+        </button>
+        <button
+          onClick={() => setActiveTab('utm')}
+          style={{
+            padding: '0.75rem 1.5rem',
+            backgroundColor: activeTab === 'utm' ? '#3b82f6' : 'transparent',
+            color: activeTab === 'utm' ? 'white' : '#6b7280',
+            border: 'none',
+            borderBottom: activeTab === 'utm' ? '3px solid #3b82f6' : 'none',
+            borderRadius: '0.5rem 0.5rem 0 0',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '1rem',
+            transition: 'all 0.2s'
+          }}
+        >
+          🎯 Configuraciones UTM
+        </button>
+      </div>
+
+      {/* Contenido de tabs */}
+      {activeTab === 'utm' ? (
+        <DashboardUtmConfig />
+      ) : (
+        <>
+          {/* Contenido original de estadísticas */}
 
       {/* Estadísticas Totales */}
       <div className="analytics-stats-card">
@@ -162,6 +215,8 @@ function EstadisticasGenerales() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

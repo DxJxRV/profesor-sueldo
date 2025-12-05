@@ -12,6 +12,7 @@ import NombresMasBuscados from './pages/NombresMasBuscados'
 import ProfesoresMasVistos from './pages/ProfesoresMasVistos'
 import RankingSueldos from './pages/RankingSueldos'
 import EstadisticasGenerales from './pages/EstadisticasGenerales'
+import AdminDashboard from './pages/AdminDashboard'
 import Layout from './components/Layout'
 import { apiClient } from './services/apiClient'
 // SEO Pages
@@ -57,6 +58,7 @@ function App() {
             <Route path="/profesores-mas-vistos" element={<ProfesoresMasVistos />} />
             <Route path="/ranking-sueldos" element={<RankingSueldos />} />
             <Route path="/dxjx663" element={<EstadisticasGenerales />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
             {/* Rutas SEO - Páginas estáticas generadas */}
             <Route path="/cuanto-gana/:profesionSlug" element={<ProfesionPage />} />
