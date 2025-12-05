@@ -9,7 +9,7 @@
 .home2-hero {
   /* background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); */
   background: transparent;
-  padding: 4rem 2rem;
+  padding: 4rem 2rem 6rem 2rem;
   margin-top: -70px;
   padding-top: calc(4rem + 70px);
   text-align: center;
@@ -41,7 +41,7 @@
   padding: 2rem;
   display: flex;
   justify-content: center;
-  margin-top: -2rem;
+  margin-top: 0;
   position: relative;
   z-index: 10;
 }

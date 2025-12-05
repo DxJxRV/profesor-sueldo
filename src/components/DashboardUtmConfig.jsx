@@ -19,6 +19,7 @@ function DashboardUtmConfig() {
     specialMessage: '',
     backgroundColor: '',
     textColor: '',
+    buttonColor: '',
     imageUrl: '',
     isActive: true
   });
@@ -64,6 +65,7 @@ function DashboardUtmConfig() {
       specialMessage: '',
       backgroundColor: '',
       textColor: '',
+      buttonColor: '',
       imageUrl: '',
       isActive: true
     });
@@ -88,6 +90,7 @@ function DashboardUtmConfig() {
         specialMessage: '',
         backgroundColor: '',
         textColor: '',
+        buttonColor: '',
         imageUrl: ''
       }));
       return;
@@ -106,6 +109,7 @@ function DashboardUtmConfig() {
         specialMessage: template.special_message || '',
         backgroundColor: template.background_color || '',
         textColor: template.text_color || '',
+        buttonColor: template.button_color || '',
         imageUrl: template.image_url || ''
       }));
     }
@@ -153,6 +157,7 @@ function DashboardUtmConfig() {
       specialMessage: config.special_message || '',
       backgroundColor: config.background_color || '',
       textColor: config.text_color || '',
+      buttonColor: config.button_color || '',
       imageUrl: config.image_url || '',
       isActive: config.is_active !== undefined ? config.is_active : true
     });
@@ -570,6 +575,56 @@ function DashboardUtmConfig() {
                       borderRadius: '0.5rem',
                       flexShrink: 0
                     }} title={formData.textColor} />
+                  )}
+                </div>
+              </div>
+
+              {/* Button Color */}
+              <div style={{ minWidth: 0 }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#374151', fontSize: '0.875rem' }}>
+                  Color del Botón
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <input
+                    type="color"
+                    name="buttonColor"
+                    value={formData.buttonColor || '#6366f1'}
+                    onChange={handleInputChange}
+                    style={{
+                      width: isMobile ? '3rem' : '3.5rem',
+                      height: '2.75rem',
+                      padding: '0.25rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <input
+                    type="text"
+                    name="buttonColor"
+                    value={formData.buttonColor}
+                    onChange={handleInputChange}
+                    style={{
+                      flex: 1,
+                      minWidth: isMobile ? '120px' : 'auto',
+                      padding: '0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      boxSizing: 'border-box'
+                    }}
+                    placeholder="#6366f1"
+                  />
+                  {formData.buttonColor && (
+                    <div style={{
+                      width: '2.75rem',
+                      height: '2.75rem',
+                      backgroundColor: formData.buttonColor,
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '0.5rem',
+                      flexShrink: 0
+                    }} title={formData.buttonColor} />
                   )}
                 </div>
               </div>

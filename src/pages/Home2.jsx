@@ -682,7 +682,7 @@ function Home2() {
                 }}
                 style={{
                   padding: '0.875rem 2rem',
-                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  background: utmConfig?.button_color || 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '0.75rem',
@@ -690,7 +690,9 @@ function Home2() {
                   fontWeight: 600,
                   cursor: loading ? 'not-allowed' : 'pointer',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                  boxShadow: utmConfig?.button_color
+                    ? `0 4px 12px ${utmConfig.button_color}40`
+                    : '0 4px 12px rgba(99, 102, 241, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
@@ -699,13 +701,21 @@ function Home2() {
                 onMouseEnter={(e) => {
                   if (!loading) {
                     e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(99, 102, 241, 0.4)';
+                    if (utmConfig?.button_color) {
+                      e.currentTarget.style.boxShadow = `0 6px 16px ${utmConfig.button_color}60`;
+                    } else {
+                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(99, 102, 241, 0.4)';
+                    }
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!loading) {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+                    if (utmConfig?.button_color) {
+                      e.currentTarget.style.boxShadow = `0 4px 12px ${utmConfig.button_color}40`;
+                    } else {
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+                    }
                   }
                 }}
               >
