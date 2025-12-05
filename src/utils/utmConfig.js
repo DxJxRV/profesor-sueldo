@@ -91,10 +91,23 @@ export function getUtmStyles(config) {
 
   const styles = {};
 
-  if (config.background_color) {
+  // Si hay imagen, usarla como fondo
+  if (config.image_url) {
+    styles.backgroundImage = `radial-gradient(circle, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.15) 60%, rgba(0, 0, 0, 0.05) 100%), url(${config.image_url})`;
+    styles.backgroundSize = 'cover';
+    styles.backgroundPosition = 'center';
+    styles.backgroundRepeat = 'no-repeat';
+    styles.minHeight = '600px';
+    // Si hay imagen y no hay color de texto definido, usar blanco por defecto
+    if (!config.text_color) {
+      styles.color = '#ffffff';
+    }
+  } else if (config.background_color) {
+    // Si no hay imagen, usar el color de fondo
     styles.backgroundColor = config.background_color;
   }
 
+  // Aplicar color de texto personalizado si está definido
   if (config.text_color) {
     styles.color = config.text_color;
   }

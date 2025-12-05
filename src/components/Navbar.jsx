@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import './Navbar.css';
 
-function Navbar() {
+function Navbar({ isTransparent = false }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const toggleMenu = () => {
@@ -14,7 +14,7 @@ function Navbar() {
   };
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${isTransparent ? 'navbar-transparent' : ''}`}>
       <div className="navbar-container">
         <Link to="/" className="navbar-logo" onClick={closeMenu}>
           SUELDOSMEXICO.COM

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { FaSearch, FaShareAlt, FaSpinner, FaFire, FaUser } from 'react-icons/fa';
+import { FiSearch } from 'react-icons/fi';
 import '../styles/Home2.css';
 import '../components/AdSense.css';
 import AdSense from '../components/AdSense';
@@ -585,10 +586,16 @@ function Home2() {
       {/* Hero Section */}
       <div className="home2-hero" style={utmConfig ? getUtmStyles(utmConfig) : {}}>
         <div className="home2-hero-content">
-          <h1 className="home2-title" style={utmConfig && utmConfig.text_color ? { color: utmConfig.text_color } : {}}>
+          <h1 className="home2-title" style={{
+            color: utmConfig?.text_color || (utmConfig?.image_url ? '#ffffff' : undefined),
+            textShadow: utmConfig?.image_url ? '0 2px 8px rgba(0, 0, 0, 0.5)' : 'none'
+          }}>
             {utmConfig ? getUtmText(utmConfig, 'title', '¿Cuánto gana mi servidor público?') : '¿Cuánto gana mi servidor público?'}
           </h1>
-          <p className="home2-subtitle" style={utmConfig && utmConfig.text_color ? { color: utmConfig.text_color } : {}}>
+          <p className="home2-subtitle" style={{
+            color: utmConfig?.text_color || (utmConfig?.image_url ? '#ffffff' : undefined),
+            textShadow: utmConfig?.image_url ? '0 2px 6px rgba(0, 0, 0, 0.4)' : 'none'
+          }}>
             {utmConfig && utmConfig.subtitle
               ? utmConfig.subtitle
               : 'Gobernadores | SEP | IMSS | Institutos | Secretarías'}
@@ -600,143 +607,114 @@ function Home2() {
           {utmConfig && utmConfig.special_message && (
             <div style={{
               marginTop: '2rem',
-              padding: '1.5rem 2rem',
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 250, 255, 0.95) 100%)',
-              borderRadius: '1rem',
-              border: '1px solid rgba(99, 102, 241, 0.2)',
-              boxShadow: '0 8px 32px -8px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-              color: '#1e293b',
-              fontSize: '1.125rem',
-              fontWeight: 500,
-              textAlign: 'center',
-              backdropFilter: 'blur(10px)',
-              lineHeight: '1.6',
+              borderRadius: utmConfig.image_url ? '0' : '1rem',
+              boxShadow: utmConfig.image_url ? 'none' : '0 8px 32px -8px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              padding: '1.5rem 2rem',
+              background: utmConfig.image_url
+                ? 'transparent'
+                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 250, 255, 0.95) 100%)',
+              backdropFilter: 'none',
+              WebkitBackdropFilter: 'none',
+              border: utmConfig.image_url
+                ? 'none'
+                : '1px solid rgba(99, 102, 241, 0.2)'
             }}>
               <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '3px',
-                background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)'
-              }} />
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <p style={{ margin: '0 0 1rem 0' }}>
+                position: 'relative',
+                zIndex: 1,
+                width: '100%'
+              }}>
+                <p style={{
+                  margin: '0 0 1rem 0',
+                  color: utmConfig.image_url ? '#ffffff' : '#1e293b',
+                  fontSize: '1.125rem',
+                  fontWeight: 500,
+                  textAlign: 'center',
+                  lineHeight: '1.6',
+                  textShadow: utmConfig.image_url ? '0 2px 4px rgba(0, 0, 0, 0.3)' : 'none'
+                }}>
                   {utmConfig.special_message}
                 </p>
+              </div>
+            </div>
+          )}
 
-                {/* Mostrar profesor sugerido si existe */}
-                {getSuggestedProfessor(utmConfig) && (
-                  <div style={{
-                    marginTop: '1.5rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '1rem'
-                  }}>
-                    <div style={{
-                      fontSize: '1.25rem',
-                      fontWeight: 600,
-                      color: '#4f46e5',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      flexWrap: 'wrap',
-                      justifyContent: 'center'
-                    }}>
-                      <span>👤</span>
-                      <span>{getSuggestedProfessor(utmConfig).name}</span>
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // Ejecutar búsqueda
-                        if (!loading) {
-                          handleSubmit(e);
-                          // Scroll suave hacia los resultados después de un breve delay
-                          setTimeout(() => {
-                            window.scrollTo({
-                              top: 800,
-                              behavior: 'smooth'
-                            });
-                          }, 500);
-                        }
-                      }}
-                      style={{
-                        padding: '0.875rem 2rem',
-                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '0.75rem',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.3s ease',
-                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        opacity: loading ? 0.6 : 1
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!loading) {
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 6px 16px rgba(99, 102, 241, 0.4)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
-                      }}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <FaSpinner size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                          <span>Buscando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <FaSearch size={20} />
-                          <span>Buscar información</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
+          {/* Mostrar profesor sugerido si existe */}
+          {utmConfig && getSuggestedProfessor(utmConfig) && (
+            <div style={{
+              marginTop: '2rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1rem'
+            }}>
+              <div style={{
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: utmConfig.image_url ? '#ffffff' : '#4f46e5',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                textShadow: utmConfig.image_url ? '0 2px 8px rgba(0, 0, 0, 0.5)' : 'none'
+              }}>
+                <span>👤</span>
+                <span>{getSuggestedProfessor(utmConfig).name}</span>
               </div>
 
-              <style>{`
-                @keyframes spin {
-                  from { transform: rotate(0deg); }
-                  to { transform: rotate(360deg); }
-                }
-              `}</style>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  // Ejecutar búsqueda
+                  if (!loading) {
+                    handleSubmit(e);
+                    // Scroll suave hacia los resultados después de un breve delay
+                    setTimeout(() => {
+                      window.scrollTo({
+                        top: 800,
+                        behavior: 'smooth'
+                      });
+                    }, 500);
+                  }
+                }}
+                style={{
+                  padding: '0.875rem 2rem',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.75rem',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: loading ? 0.6 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(99, 102, 241, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+                  }
+                }}
+              >
+                <FiSearch size={20} />
+                <span>{getUtmText(utmConfig, 'button_text', 'Buscar información')}</span>
+              </button>
             </div>
           )}
 
-          {/* Imagen personalizada si existe */}
-          {utmConfig && utmConfig.image_url && (
-            <div style={{
-              marginTop: '1.5rem',
-              display: 'flex',
-              justifyContent: 'center'
-            }}>
-              <img
-                src={utmConfig.image_url}
-                alt="Banner personalizado"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '300px',
-                  borderRadius: '0.75rem',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                }}
-              />
-            </div>
-          )}
         </div>
       </div>
 

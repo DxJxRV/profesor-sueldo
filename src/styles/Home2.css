@@ -10,6 +10,8 @@
   /* background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); */
   background: transparent;
   padding: 4rem 2rem;
+  margin-top: -70px;
+  padding-top: calc(4rem + 70px);
   text-align: center;
   /* border-bottom: 1px solid #e9ecef; */
 }
