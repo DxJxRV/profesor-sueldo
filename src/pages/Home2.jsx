@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import '../styles/Home2.css';
 import '../components/AdSense.css';
 import AdSense from '../components/AdSense';
 import { apiClient } from '../services/apiClient';
+import { getHistorial, addToHistorial, removeFromHistorial } from '../utils/historial';
 
 function Home2() {
   const navigate = useNavigate();
@@ -22,10 +23,62 @@ function Home2() {
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 10;
 
+  // Estados para dropdown de autocompletado
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [historial, setHistorial] = useState([]);
+  const [masBuscados, setMasBuscados] = useState([]);
+  const [isLoadingMasBuscados, setIsLoadingMasBuscados] = useState(false);
+
+  // Ref para manejar clicks fuera del dropdown
+  const dropdownRef = useRef(null);
+
   // Scroll al inicio cuando se monta el componente
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  // Cargar historial desde localStorage al montar
+  useEffect(() => {
+    const historialGuardado = getHistorial();
+    setHistorial(historialGuardado);
+  }, []);
+
+  // Cargar nombres más buscados desde el backend
+  useEffect(() => {
+    const fetchMasBuscados = async () => {
+      setIsLoadingMasBuscados(true);
+      try {
+        const response = await apiClient.getNombresMasBuscados(10);
+        // La respuesta viene como: { success: true, data: [...], total: 7 }
+        // data es un array de objetos: [{ nombre_profesor, total_busquedas, usuarios_unicos, ultima_busqueda }, ...]
+        setMasBuscados(response?.data || []);
+      } catch (error) {
+        console.error('❌ Error al cargar nombres más buscados:', error);
+        setMasBuscados([]);
+      } finally {
+        setIsLoadingMasBuscados(false);
+      }
+    };
+
+    fetchMasBuscados();
+  }, []);
+
+  // Manejar clicks fuera del dropdown para cerrarlo
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
 
   // Restaurar estado de búsqueda si viene del detalle de profesor o de URL params
   useEffect(() => {
@@ -171,6 +224,74 @@ function Home2() {
     }
   }, [results, showResults]);
 
+  // ============================================
+  // FUNCIONES HELPER PARA DROPDOWN
+  // ============================================
+
+  // Abrir dropdown cuando se hace focus en el input
+  const handleInputFocus = () => {
+    setShowDropdown(true);
+  };
+
+  // Seleccionar un item del dropdown (historial o más buscados)
+  const handleSelect = async (nombre) => {
+    if (!nombre || !nombre.trim()) return;
+
+    // Autocompletar el input
+    setProfessorName(nombre);
+
+    // Cerrar el dropdown
+    setShowDropdown(false);
+
+    // Resetear filtros
+    setSelectedEntidad(null);
+    setIsFilterOpen(false);
+
+    // Agregar al historial
+    const nuevoHistorial = addToHistorial(nombre);
+    setHistorial(nuevoHistorial);
+
+    // Ejecutar búsqueda automáticamente
+    setLoading(true);
+    try {
+      const data = await apiClient.consultarProfesores({
+        contenido: nombre,
+        cantidad: 200,
+        numeroPagina: 0,
+      });
+
+      console.log("✅ Resultado desde dropdown:", data);
+      setResults(data.datosSolr || []);
+      setShowResults(true);
+      setHasSearched(true);
+
+      if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
+        setEntidadesFederativas(data.entidadesFederativas);
+      }
+
+      // Actualizar URL
+      updateURLParams(nombre, null);
+
+    } catch (error) {
+      console.error("❌ Error en búsqueda desde dropdown:", error);
+      alert('Error al buscar información');
+      setResults([]);
+      setShowResults(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Eliminar un item del historial
+  const handleRemoveItem = (e, nombre) => {
+    e.stopPropagation(); // Evitar que se dispare el click del parent
+    const nuevoHistorial = removeFromHistorial(nombre);
+    setHistorial(nuevoHistorial);
+  };
+
+  // ============================================
+  // FIN FUNCIONES DROPDOWN
+  // ============================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -179,7 +300,10 @@ function Home2() {
       // Resetear filtros al hacer una nueva búsqueda
       setSelectedEntidad(null);
       setIsFilterOpen(false);
-      
+
+      // Cerrar dropdown si está abierto
+      setShowDropdown(false);
+
       try {
         const data = await apiClient.consultarProfesores({
           contenido: professorName,
@@ -191,16 +315,20 @@ function Home2() {
         setResults(data.datosSolr || []);
         setShowResults(true);
         setHasSearched(true);
-        
+
         // Usar entidades federativas directamente del response
         if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
           console.log('🏛️ Entidades Federativas del API:', data.entidadesFederativas);
           setEntidadesFederativas(data.entidadesFederativas);
         }
-        
+
+        // Agregar al historial
+        const nuevoHistorial = addToHistorial(professorName);
+        setHistorial(nuevoHistorial);
+
         // Actualizar URL con parámetros de búsqueda
         updateURLParams(professorName, null);
-        
+
       } catch (error) {
         console.error("❌ Error en la solicitud:", error);
         alert(`Error al buscar información`);
@@ -345,20 +473,231 @@ function Home2() {
         <div className="home2-search-card">
           <form onSubmit={handleSubmit}>
             {/* Search Input */}
-            <div className="home2-input-group">
+            <div className="home2-input-group" ref={dropdownRef}>
               <label className="home2-input-label">Nombre del servidor público</label>
-              <div className="home2-input-container">
-                <svg className="home2-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="21 21l-4.35-4.35"></path>
-                </svg>
-                <input
-                  type="text"
-                  value={professorName}
-                  onChange={(e) => setProfessorName(e.target.value)}
-                  placeholder="Ingresa el nombre del servidor público..."
-                  className="home2-search-input"
-                />
+              <div style={{ position: 'relative' }}>
+                <div className="home2-input-container">
+                  <svg className="home2-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="21 21l-4.35-4.35"></path>
+                  </svg>
+                  <input
+                    type="text"
+                    value={professorName}
+                    onChange={(e) => setProfessorName(e.target.value)}
+                    onFocus={handleInputFocus}
+                    placeholder="Ingresa el nombre del servidor público..."
+                    className="home2-search-input"
+                    autoComplete="off"
+                  />
+                </div>
+
+                {/* Top 3 más buscados - Badges debajo del input */}
+                {!showDropdown && masBuscados.length > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                    flexWrap: 'wrap',
+                    marginTop: '0.75rem',
+                    padding: '0 0.25rem'
+                  }}>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      color: '#6b7280',
+                      alignSelf: 'center',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      Populares:
+                    </span>
+                    {masBuscados.slice(0, 3).map((item, index) => (
+                      <button
+                        key={`badge-${index}`}
+                        type="button"
+                        onClick={() => handleSelect(item.nombre_profesor)}
+                        style={{
+                          padding: '0.375rem 0.75rem',
+                          fontSize: '0.875rem',
+                          backgroundColor: '#f3f4f6',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '9999px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          whiteSpace: 'nowrap',
+                          color: '#374151'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.backgroundColor = '#e5e7eb';
+                          e.target.style.borderColor = '#d1d5db';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = '#f3f4f6';
+                          e.target.style.borderColor = '#e5e7eb';
+                        }}
+                      >
+                        🔥 {item.nombre_profesor}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Dropdown de autocompletado - Mejorado */}
+                {showDropdown && (historial.length > 0 || masBuscados.length > 0) && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                    marginTop: '0.5rem',
+                    maxHeight: '20rem',
+                    overflowY: 'auto',
+                    zIndex: 50
+                  }}>
+
+                    {/* Sección: Historial de búsquedas */}
+                    {historial.length > 0 && (
+                      <div>
+                        <div style={{
+                          padding: '0.75rem 1rem',
+                          fontSize: '0.75rem',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          fontWeight: 600,
+                          backgroundColor: '#f9fafb',
+                          borderBottom: '1px solid #f3f4f6'
+                        }}>
+                          📋 Tu historial
+                        </div>
+                        {historial.map((item, index) => (
+                          <div
+                            key={`historial-${index}`}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '0.75rem 1rem',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.15s',
+                              borderBottom: index < historial.length - 1 ? '1px solid #f3f4f6' : 'none'
+                            }}
+                            className="dropdown-item-hover"
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                          >
+                            <span
+                              onClick={() => handleSelect(item)}
+                              style={{
+                                flex: 1,
+                                fontSize: '0.875rem',
+                                color: '#1f2937'
+                              }}
+                            >
+                              🕐 {item}
+                            </span>
+                            <button
+                              onClick={(e) => handleRemoveItem(e, item)}
+                              style={{
+                                marginLeft: '0.5rem',
+                                padding: '0.25rem',
+                                color: '#9ca3af',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '1rem',
+                                lineHeight: 1,
+                                transition: 'color 0.15s'
+                              }}
+                              onMouseEnter={(e) => e.target.style.color = '#ef4444'}
+                              onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
+                              title="Eliminar del historial"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Separador entre secciones */}
+                    {historial.length > 0 && masBuscados.length > 0 && (
+                      <div style={{ height: '0.5rem', backgroundColor: '#f9fafb' }} />
+                    )}
+
+                    {/* Sección: Más buscados */}
+                    {masBuscados.length > 0 && (
+                      <div>
+                        <div style={{
+                          padding: '0.75rem 1rem',
+                          fontSize: '0.75rem',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          fontWeight: 600,
+                          backgroundColor: '#f9fafb',
+                          borderBottom: '1px solid #f3f4f6'
+                        }}>
+                          🔥 Más buscados
+                        </div>
+                        {isLoadingMasBuscados ? (
+                          <div style={{
+                            padding: '2rem 1rem',
+                            textAlign: 'center',
+                            color: '#9ca3af',
+                            fontSize: '0.875rem'
+                          }}>
+                            Cargando...
+                          </div>
+                        ) : (
+                          masBuscados.map((item, index) => (
+                            <div
+                              key={`buscado-${index}`}
+                              style={{
+                                padding: '0.75rem 1rem',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.15s',
+                                borderBottom: index < masBuscados.length - 1 ? '1px solid #f3f4f6' : 'none'
+                              }}
+                              onClick={() => handleSelect(item.nombre_profesor)}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                            >
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.5rem'
+                              }}>
+                                <span style={{
+                                  fontSize: '0.875rem',
+                                  color: '#1f2937',
+                                  flex: 1,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {item.nombre_profesor}
+                                </span>
+                                <span style={{
+                                  fontSize: '0.75rem',
+                                  color: '#9ca3af',
+                                  backgroundColor: '#f3f4f6',
+                                  padding: '0.125rem 0.5rem',
+                                  borderRadius: '9999px',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {item.total_busquedas}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+                )}
               </div>
             </div>
 
