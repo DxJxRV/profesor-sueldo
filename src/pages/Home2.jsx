@@ -492,8 +492,8 @@ function Home2() {
                   />
                 </div>
 
-                {/* Top 3 más buscados - Badges debajo del input */}
-                {!showDropdown && masBuscados.length > 0 && (
+                {/* Top 3 más buscados + sugerencias - Badges debajo del input */}
+                {!showDropdown && (
                   <div style={{
                     display: 'flex',
                     gap: '0.5rem',
@@ -509,6 +509,8 @@ function Home2() {
                     }}>
                       Populares:
                     </span>
+
+                    {/* Top 3 desde el backend */}
                     {masBuscados.slice(0, 3).map((item, index) => (
                       <button
                         key={`badge-${index}`}
@@ -535,6 +537,36 @@ function Home2() {
                         }}
                       >
                         🔥 {item.nombre_profesor}
+                      </button>
+                    ))}
+
+                    {/* Sugerencias adicionales */}
+                    {['profesor', 'doctor', 'vecino'].map((termino, index) => (
+                      <button
+                        key={`sugerencia-${index}`}
+                        type="button"
+                        onClick={() => handleSelect(termino)}
+                        style={{
+                          padding: '0.375rem 0.75rem',
+                          fontSize: '0.875rem',
+                          backgroundColor: '#f3f4f6',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '9999px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          whiteSpace: 'nowrap',
+                          color: '#374151'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.backgroundColor = '#e5e7eb';
+                          e.target.style.borderColor = '#d1d5db';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = '#f3f4f6';
+                          e.target.style.borderColor = '#e5e7eb';
+                        }}
+                      >
+                        👤 Tu {termino}
                       </button>
                     ))}
                   </div>
