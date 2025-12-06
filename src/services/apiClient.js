@@ -401,6 +401,33 @@ class ApiClient {
       method: 'GET',
     });
   }
+
+  // ============================================
+  // PROFESSOR RELATIONS
+  // ============================================
+
+  /**
+   * Buscar personas con el mismo apellido
+   */
+  async buscarPorApellido({ apellidoPaterno, apellidoMaterno, excludeProfessorId }) {
+    console.log('👨‍👩‍👧‍👦 Buscando personas con apellido:', apellidoPaterno, apellidoMaterno);
+    return this.request('/same-lastname', {
+      method: 'POST',
+      body: JSON.stringify({ apellidoPaterno, apellidoMaterno, excludeProfessorId }),
+    });
+  }
+
+  /**
+   * Buscar personas de la misma institución
+   */
+  async buscarPorInstitucion({ identificadorGrupo, idEntidadFederativa, sujetoObligado, excludeProfessorId }) {
+    console.log('🏛️ Buscando personas de la institución:', sujetoObligado);
+    console.log('📋 ID Grupo:', identificadorGrupo);
+    return this.request('/same-institution', {
+      method: 'POST',
+      body: JSON.stringify({ identificadorGrupo, idEntidadFederativa, sujetoObligado, excludeProfessorId }),
+    });
+  }
 }
 
 // Exportar una instancia única del cliente

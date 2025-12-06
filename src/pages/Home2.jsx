@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { FaSearch, FaShareAlt, FaSpinner, FaFire, FaUser } from 'react-icons/fa';
+import { FaSearch, FaShareAlt, FaFire, FaUser } from 'react-icons/fa';
 import { FiSearch } from 'react-icons/fi';
 import '../styles/Home2.css';
 import '../components/AdSense.css';
-import AdSense from '../components/AdSense';
 import { apiClient } from '../services/apiClient';
 import { getHistorial, addToHistorial, removeFromHistorial } from '../utils/historial';
 import {
@@ -17,6 +16,9 @@ import {
   getSuggestedProfessor,
   trackUtmEvent
 } from '../utils/utmConfig';
+import hero800 from '../assets/hero2-800.webp';
+import hero1200 from '../assets/hero2-1200.webp';
+import hero1600 from '../assets/hero2-1600.webp';
 
 function Home2() {
   const navigate = useNavigate();
@@ -49,6 +51,9 @@ function Home2() {
   // Estados para Targeted Messages
   const [targetedMessages, setTargetedMessages] = useState([]);
   const [showTargetedMessage, setShowTargetedMessage] = useState(true);
+
+  // Estado para el input del hero
+  const [heroSearchName, setHeroSearchName] = useState('Sheinbaum');
 
   // Ref para manejar clicks fuera del dropdown
   const dropdownRef = useRef(null);
@@ -583,6 +588,211 @@ function Home2() {
 
   return (
     <div className="home2-container">
+      {/* Hero Landing Section - Solo cuando NO hay UTM */}
+      {!utmConfig && (
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          minHeight: '95vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          marginTop: '-70px',
+          paddingTop: '70px'
+        }}>
+          {/* Imagen de fondo responsive */}
+          <picture style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 0
+          }}>
+            <source media="(min-width: 1200px)" srcSet={hero1600} />
+            <source media="(min-width: 768px)" srcSet={hero1200} />
+            <img
+              src={hero800}
+              alt="Hero background"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center'
+              }}
+            />
+          </picture>
+
+          {/* Overlay oscuro con gradiente radial */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'radial-gradient(circle, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.1) 100%)',
+            zIndex: 1
+          }} />
+
+          {/* Contenido del hero */}
+          <div style={{
+            position: 'relative',
+            zIndex: 2,
+            textAlign: 'center',
+            padding: '2rem',
+            maxWidth: '900px',
+            margin: '0 auto'
+          }}>
+            <h1 style={{
+              fontSize: window.innerWidth <= 768 ? '2rem' : '3.5rem',
+              fontWeight: 800,
+              color: '#ffffff',
+              marginBottom: '1.5rem',
+              textShadow: '0 4px 12px rgba(0, 0, 0, 0.7)',
+              lineHeight: 1.2
+            }}>
+              Descubre cuánto ganan los servidores públicos de México
+            </h1>
+
+            <p style={{
+              fontSize: window.innerWidth <= 768 ? '1rem' : '1.25rem',
+              color: '#ffffff',
+              marginBottom: '2.5rem',
+              textShadow: '0 2px 8px rgba(0, 0, 0, 0.6)',
+              lineHeight: 1.6,
+              maxWidth: '700px',
+              margin: '0 auto 2.5rem'
+            }}>
+              Accede a información oficial de transparencia sobre salarios de gobernadores, funcionarios del IMSS, SEP y más.
+            </p>
+
+            {/* Input de búsqueda con botón */}
+            <div style={{
+              maxWidth: '600px',
+              margin: '0 auto',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'stretch',
+              gap: '0'
+            }}>
+              <input
+                type="text"
+                value={heroSearchName}
+                onChange={(e) => setHeroSearchName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && heroSearchName.trim()) {
+                    e.preventDefault();
+                    setProfessorName(heroSearchName);
+                    setTimeout(() => {
+                      const fakeEvent = { preventDefault: () => {} };
+                      handleSubmit(fakeEvent);
+                      setTimeout(() => {
+                        window.scrollTo({
+                          top: 900,
+                          behavior: 'smooth'
+                        });
+                      }, 300);
+                    }, 100);
+                  }
+                }}
+                placeholder="Ingresa un nombre..."
+                style={{
+                  flex: 1,
+                  height: '60px',
+                  padding: '0 1.5rem',
+                  fontSize: window.innerWidth <= 768 ? '1rem' : '1.125rem',
+                  border: 'none',
+                  borderRadius: '0.75rem 0 0 0.75rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+                  outline: 'none',
+                  fontWeight: 500,
+                  color: '#1f2937',
+                  transition: 'all 0.3s ease',
+                  animation: 'bounceScale 2s ease-in-out infinite'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.animation = 'none';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                  e.currentTarget.style.boxShadow = '0 6px 25px rgba(0, 0, 0, 0.25)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.animation = 'bounceScale 2s ease-in-out infinite';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.75)';
+                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
+                }}
+              />
+
+              <button
+                onClick={(e) => {
+                  if (!heroSearchName.trim()) return;
+                  e.preventDefault();
+                  setProfessorName(heroSearchName);
+                  setTimeout(() => {
+                    handleSubmit(e);
+                    setTimeout(() => {
+                      window.scrollTo({
+                        top: 900,
+                        behavior: 'smooth'
+                      });
+                    }, 300);
+                  }, 100);
+                }}
+                title="Buscar Sueldos"
+                disabled={!heroSearchName.trim()}
+                style={{
+                  padding: '0',
+                  width: '60px',
+                  height: '60px',
+                  background: 'linear-gradient(135deg, #d91c5c 0%, #ffd600 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0 0.75rem 0.75rem 0',
+                  cursor: heroSearchName.trim() ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 6px 20px rgba(217, 28, 92, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  animation: 'bounceScale 2s ease-in-out infinite',
+                  opacity: heroSearchName.trim() ? 1 : 0.6
+                }}
+                onMouseEnter={(e) => {
+                  if (heroSearchName.trim()) {
+                    e.currentTarget.style.animation = 'none';
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(217, 28, 92, 0.5)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (heroSearchName.trim()) {
+                    e.currentTarget.style.animation = 'bounceScale 2s ease-in-out infinite';
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(217, 28, 92, 0.4)';
+                  }
+                }}
+              >
+                <FiSearch size={28} />
+              </button>
+            </div>
+
+            <style>{`
+              @keyframes bounceScale {
+                0%, 100% {
+                  transform: scale(1);
+                }
+                50% {
+                  transform: scale(1.05);
+                }
+              }
+            `}</style>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div className="home2-hero" style={utmConfig ? getUtmStyles(utmConfig) : {}}>
         <div className="home2-hero-content">

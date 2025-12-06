@@ -1,14 +1,14 @@
-/* Professor Detail Page */
+/* Professor Detail Page - Dashboard Style */
 .professor-detail-page {
   min-height: 100vh;
-  background-color: #f9fafb;
-  padding: 2rem 0;
+  background-color: #f3f4f6;
+  padding: 1rem;
 }
 
 .professor-detail-container {
-  max-width: 900px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0;
 }
 
 .professor-detail-loading {
@@ -23,13 +23,23 @@
   color: #6b7280;
 }
 
-/* Header */
+/* Dashboard Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Header - Compact with integrated salaries */
 .detail-header {
   background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
 }
 
 .back-button {
@@ -39,11 +49,12 @@
   background: none;
   border: none;
   color: #6b7280;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  padding: 0.5rem 0;
-  margin-bottom: 1.5rem;
+  padding: 0.4rem 0;
+  margin-bottom: 1rem;
   transition: color 0.3s ease;
+  align-self: flex-start;
 }
 
 .back-button:hover {
@@ -51,122 +62,126 @@
 }
 
 .back-button svg {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
+}
+
+.detail-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .detail-title-section {
-  border-left: 4px solid #2563eb;
-  padding-left: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .detail-professor-name {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #111827;
-  margin: 0 0 0.75rem 0;
+  margin: 0;
   line-height: 1.2;
 }
 
 .detail-institution {
   color: #4b5563;
-  font-size: 1.125rem;
-  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  margin: 0;
   font-weight: 500;
 }
 
 .detail-location {
   color: #6b7280;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 0.25rem;
 }
 
-/* Ad Container */
-.detail-ad-container {
-  padding: 1.5rem 0;
+.detail-header-salaries {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
 }
 
-/* Salary Cards */
-.detail-salary-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+.detail-header-salary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
 }
 
-.detail-salary-card {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-
-.detail-salary-label {
-  font-size: 0.875rem;
+.detail-header-salary-label {
+  font-size: 0.65rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #9ca3af;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.75rem;
+  letter-spacing: 0.3px;
 }
 
-.detail-salary-amount {
-  font-size: 1.75rem;
+.detail-header-salary-amount {
+  font-size: 1rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  line-height: 1;
 }
 
-.detail-current {
+.detail-header-salary-amount.current {
   color: #2563eb;
 }
 
-.detail-maximum {
+.detail-header-salary-amount.maximum {
   color: #059669;
 }
 
-.detail-salary-date {
-  font-size: 0.75rem;
-  color: #9ca3af;
+/* Ad Container */
+.detail-ad-container {
+  padding: 0.75rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  grid-column: 1 / -1;
 }
 
-/* Tabs Navigation */
+/* Removed separate salary cards - now integrated in header */
+
+/* Tabs Navigation - Compact with 4 tabs */
 .detail-tabs-nav {
-  display: flex;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
   background: white;
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  grid-column: 1 / -1;
 }
 
 .detail-tab-button {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  border: 2px solid #e5e7eb;
+  gap: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e5e7eb;
   background: white;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #6b7280;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .detail-tab-button:hover {
-  border-color: #d1d5db;
-  color: #374151;
+  border-color: #2563eb;
+  color: #2563eb;
 }
 
 .detail-tab-button.active {
@@ -175,45 +190,58 @@
   color: white;
 }
 
+/* Special styling for institution tab */
+.detail-tab-button.tab-institution:hover {
+  border-color: #ff8c00;
+  color: #ff8c00;
+}
+
+.detail-tab-button.tab-institution.active {
+  background: linear-gradient(135deg, #ff9933 0%, #ffeb3b 100%);
+  border-color: #ff9933;
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 153, 51, 0.3);
+}
+
 .detail-tab-icon {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   stroke-width: 2;
 }
 
-/* Tab Content */
+/* Tab Content - Dashboard Style */
 .detail-tab-content {
   background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  grid-column: 1 / -1;
 }
 
 .detail-chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f3f4f6;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .detail-chart-period {
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #111827;
 }
 
 .detail-year-filter {
-  padding: 0.5rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.75rem;
   color: #374151;
   background: white;
   cursor: pointer;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.2s ease;
 }
 
 .detail-year-filter:hover {
@@ -225,27 +253,27 @@
   border-color: #2563eb;
 }
 
-/* Chart Tab */
+/* Chart Tab - Responsive Height */
 .detail-chart-container {
-  height: 400px;
+  height: 300px;
   width: 100%;
 }
 
-/* History Tab */
+/* History Tab - Compact */
 .detail-history-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .detail-history-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   background: #f9fafb;
-  border-radius: 8px;
-  transition: background-color 0.3s ease;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .detail-history-item:hover {
@@ -255,75 +283,233 @@
 .detail-history-date {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   color: #4b5563;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
 .detail-calendar-icon {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   stroke-width: 2;
   color: #9ca3af;
 }
 
 .detail-history-amount {
-  font-size: 1.125rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #111827;
 }
 
-/* Responsive */
+/* Responsive - Mobile First */
 @media (max-width: 768px) {
   .professor-detail-page {
-    padding: 1rem 0;
+    padding: 0.75rem;
   }
 
-  .professor-detail-container {
-    padding: 0 1rem;
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .detail-header {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .detail-professor-name {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .detail-institution {
-    font-size: 1rem;
+    font-size: 0.8rem;
   }
 
-  .detail-salary-cards {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  .detail-salary-card {
+    padding: 0.875rem;
   }
 
   .detail-tabs-nav {
-    flex-direction: column;
-    gap: 0.5rem;
+    padding: 0.5rem;
+    gap: 0.4rem;
+  }
+
+  .detail-tab-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.7rem;
+    gap: 0.3rem;
+  }
+
+  .detail-tab-icon {
+    width: 12px;
+    height: 12px;
   }
 
   .detail-tab-content {
-    padding: 1.5rem;
+    padding: 0.875rem;
   }
 
   .detail-chart-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.75rem;
   }
 
   .detail-chart-container {
-    height: 300px;
+    height: 250px;
   }
 
   .detail-history-item {
-    padding: 0.875rem 1rem;
+    padding: 0.65rem 0.875rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .detail-history-amount {
+    align-self: flex-end;
+  }
+}
+
+/* Related People Lists - Now inside tabs */
+.related-people-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.related-people-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.related-people-item:hover {
+  background: #f3f4f6;
+  border-color: #2563eb;
+  transform: translateX(2px);
+}
+
+.related-people-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.related-people-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-people-institution {
+  font-size: 0.7rem;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-people-salary {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2563eb;
+  margin-left: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Scrollbar personalizado para listas de personas relacionadas */
+.related-people-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.related-people-list::-webkit-scrollbar-track {
+  background: #f9fafb;
+  border-radius: 3px;
+}
+
+.related-people-list::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.related-people-list::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.related-people-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+/* Additional mobile styles for header salaries and related people */
+@media (max-width: 768px) {
+  .detail-header-content {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .detail-header-salaries {
+    align-self: flex-start;
+    gap: 0.75rem;
+  }
+
+  .detail-header-salary-amount {
+    font-size: 0.9rem;
+  }
+
+  .related-people-list {
+    max-height: 400px;
+  }
+
+  .related-people-item {
+    padding: 0.65rem;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  .related-people-name {
+    font-size: 0.75rem;
+  }
+
+  .related-people-institution {
+    font-size: 0.65rem;
+  }
+
+  .related-people-salary {
+    font-size: 0.8rem;
+    margin-left: 0;
+    align-self: flex-end;
+  }
+}
+
+/* Large screens - 3 columns for better use of space */
+@media (min-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .detail-header {
+    grid-column: 1 / -1;
+  }
+
+  .detail-tabs-nav,
+  .detail-tab-content,
+  .detail-ad-container {
+    grid-column: 1 / -1;
   }
 }
