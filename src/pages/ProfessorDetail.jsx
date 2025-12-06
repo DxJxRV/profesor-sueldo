@@ -39,6 +39,21 @@ function ProfessorDetail() {
   const [sameInstitutionPeople, setSameInstitutionPeople] = useState([]);
   const [loadingRelations, setLoadingRelations] = useState(false);
 
+  // Paginación del servidor para listas de personas relacionadas
+  const [lastNamePaginador, setLastNamePaginador] = useState(null);
+  const [institutionPaginador, setInstitutionPaginador] = useState(null);
+
+  // Estados para almacenar información necesaria para paginación
+  const [professorRelationData, setProfessorRelationData] = useState(null);
+
+  // Cache de datos completos para paginación rápida
+  const [lastNameFullData, setLastNameFullData] = useState([]);
+  const [institutionFullData, setInstitutionFullData] = useState([]);
+
+  // Estados para búsqueda por texto
+  const [lastNameSearchText, setLastNameSearchText] = useState('');
+  const [institutionSearchText, setInstitutionSearchText] = useState('');
+
   // Guardar el nombre de búsqueda que viene de Home2
   const searchName = location.state?.searchName;
 
@@ -88,6 +103,53 @@ function ProfessorDetail() {
     }
   }, [selectedYear, professorData]);
 
+  // Limpiar cache cuando cambia el profesor
+  useEffect(() => {
+    setLastNameFullData([]);
+    setInstitutionFullData([]);
+    setLastNameSearchText('');
+    setInstitutionSearchText('');
+  }, [professorId]);
+
+  // Debounced search para apellidos
+  useEffect(() => {
+    if (!professorRelationData) return;
+
+    const timeoutId = setTimeout(() => {
+      // Limpiar cache cuando cambia el texto de búsqueda
+      setLastNameFullData([]);
+      fetchLastNamePeople(
+        professorRelationData.apellidoPaterno,
+        professorRelationData.apellidoMaterno,
+        professorRelationData.excludeProfessorId,
+        0,
+        lastNameSearchText
+      );
+    }, 500); // 500ms de debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [lastNameSearchText]);
+
+  // Debounced search para institución
+  useEffect(() => {
+    if (!professorRelationData) return;
+
+    const timeoutId = setTimeout(() => {
+      // Limpiar cache cuando cambia el texto de búsqueda
+      setInstitutionFullData([]);
+      fetchInstitutionPeople(
+        professorRelationData.identificadorGrupo,
+        professorRelationData.idEntidadFederativa,
+        professorRelationData.sujetoObligado,
+        professorRelationData.excludeProfessorId,
+        0,
+        institutionSearchText
+      );
+    }, 500); // 500ms de debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [institutionSearchText]);
+
   const fetchRelatedPeople = async (professor, data) => {
     setLoadingRelations(true);
     try {
@@ -95,19 +157,6 @@ function ProfessorDetail() {
       const nombrePartes = professor.nombre.trim().split(' ');
       const apellidoPaterno = nombrePartes.length > 2 ? nombrePartes[nombrePartes.length - 2] : '';
       const apellidoMaterno = nombrePartes.length > 2 ? nombrePartes[nombrePartes.length - 1] : '';
-
-      // Buscar personas con mismo apellido
-      if (apellidoPaterno) {
-        const resultApellidos = await apiClient.buscarPorApellido({
-          apellidoPaterno,
-          apellidoMaterno,
-          excludeProfessorId: professor.professorId
-        });
-
-        if (resultApellidos.success && resultApellidos.data) {
-          setSameLastNamePeople(resultApellidos.data);
-        }
-      }
 
       // Extraer identificadorGrupo de data.sujetosObligados
       let identificadorGrupo = null;
@@ -136,18 +185,24 @@ function ProfessorDetail() {
         console.log('✅ ID Entidad Federativa encontrado:', idEntidadFederativa);
       }
 
-      // Buscar personas de la misma institución solo si tenemos el identificadorGrupo
-      if (identificadorGrupo) {
-        const resultInstitucion = await apiClient.buscarPorInstitucion({
-          identificadorGrupo,
-          idEntidadFederativa,
-          sujetoObligado: professor.sujetoObligado,
-          excludeProfessorId: professor.professorId
-        });
+      // Guardar información para paginación posterior
+      setProfessorRelationData({
+        apellidoPaterno,
+        apellidoMaterno,
+        identificadorGrupo,
+        idEntidadFederativa,
+        sujetoObligado: professor.sujetoObligado,
+        excludeProfessorId: professor.professorId
+      });
 
-        if (resultInstitucion.success && resultInstitucion.data) {
-          setSameInstitutionPeople(resultInstitucion.data);
-        }
+      // Buscar personas con mismo apellido (página 0)
+      if (apellidoPaterno) {
+        await fetchLastNamePeople(apellidoPaterno, apellidoMaterno, professor.professorId, 0);
+      }
+
+      // Buscar personas de la misma institución (página 0)
+      if (identificadorGrupo) {
+        await fetchInstitutionPeople(identificadorGrupo, idEntidadFederativa, professor.sujetoObligado, professor.professorId, 0);
       } else {
         console.warn('⚠️ No se puede buscar por institución sin identificadorGrupo');
       }
@@ -156,6 +211,226 @@ function ProfessorDetail() {
     } finally {
       setLoadingRelations(false);
     }
+  };
+
+  // Función para buscar personas por apellido con paginación progresiva
+  const fetchLastNamePeople = async (apellidoPaterno, apellidoMaterno, excludeProfessorId, numeroPagina, searchText = '') => {
+    try {
+      // Si hay búsqueda activa o no hay cache, limpiar cache y hacer búsqueda nueva
+      if (searchText || lastNameFullData.length === 0) {
+        // Decidir cuántos registros traer según la página solicitada
+        const maxRecords = numeroPagina >= 2 ? 5000 : 200; // Página 3+ (índice 2+) = traer todos
+        console.log(`🔍 Trayendo ${maxRecords} registros máximo para página ${numeroPagina + 1}`);
+
+        const resultApellidos = await apiClient.buscarPorApellido({
+          apellidoPaterno,
+          apellidoMaterno,
+          excludeProfessorId,
+          numeroPagina: 0, // Siempre empezar desde 0
+          fetchAll: false,
+          maxRecords,
+          searchText
+        });
+
+        if (resultApellidos.success && resultApellidos.data) {
+          // Si trajimos todos los datos (página 3+) y NO hay búsqueda, cachear
+          if (maxRecords === 5000 && !resultApellidos.paginador.hasMore && !searchText) {
+            console.log('💾 Cacheando todos los datos de apellidos');
+            setLastNameFullData(resultApellidos.data);
+          }
+
+          // Paginar localmente
+          const cantidadPorPagina = 10;
+          const inicio = numeroPagina * cantidadPorPagina;
+          const fin = inicio + cantidadPorPagina;
+          const datosPaginados = resultApellidos.data.slice(inicio, fin);
+
+          setSameLastNamePeople(datosPaginados);
+          setLastNamePaginador({
+            numeroPaginas: Math.ceil(resultApellidos.data.length / cantidadPorPagina),
+            cantidadPagina: cantidadPorPagina,
+            total: resultApellidos.data.length,
+            paginaActual: numeroPagina,
+            cantidadElementos: datosPaginados.length,
+            hasMore: resultApellidos.paginador.hasMore,
+            totalEnServidor: resultApellidos.paginador.totalEnServidor,
+            paginasEnServidor: resultApellidos.paginador.paginasEnServidor
+          });
+        }
+        return;
+      }
+
+      // Si ya tenemos cache completo y NO hay búsqueda, paginar localmente
+      if (lastNameFullData.length > 0 && !searchText) {
+        console.log('📦 Usando cache local para apellidos');
+        const cantidadPorPagina = 10;
+        const inicio = numeroPagina * cantidadPorPagina;
+        const fin = inicio + cantidadPorPagina;
+        const datosPaginados = lastNameFullData.slice(inicio, fin);
+
+        setSameLastNamePeople(datosPaginados);
+        setLastNamePaginador({
+          numeroPaginas: Math.ceil(lastNameFullData.length / cantidadPorPagina),
+          cantidadPagina: cantidadPorPagina,
+          total: lastNameFullData.length,
+          paginaActual: numeroPagina,
+          cantidadElementos: datosPaginados.length,
+          hasMore: false,
+          totalEnServidor: lastNameFullData.length, // Cuando usamos cache, es el total completo
+          paginasEnServidor: Math.ceil(lastNameFullData.length / cantidadPorPagina)
+        });
+        return;
+      }
+
+    } catch (error) {
+      console.error('❌ Error al buscar personas por apellido:', error);
+    }
+  };
+
+  // Función para buscar personas de la misma institución con paginación progresiva
+  const fetchInstitutionPeople = async (identificadorGrupo, idEntidadFederativa, sujetoObligado, excludeProfessorId, numeroPagina, searchText = '') => {
+    try {
+      // Si hay búsqueda activa o no hay cache, limpiar cache y hacer búsqueda nueva
+      if (searchText || institutionFullData.length === 0) {
+        // Decidir cuántos registros traer según la página solicitada
+        const maxRecords = numeroPagina >= 2 ? 5000 : 200; // Página 3+ (índice 2+) = traer todos
+        console.log(`🔍 Trayendo ${maxRecords} registros máximo para página ${numeroPagina + 1}`);
+
+        const resultInstitucion = await apiClient.buscarPorInstitucion({
+          identificadorGrupo,
+          idEntidadFederativa,
+          sujetoObligado,
+          excludeProfessorId,
+          numeroPagina: 0, // Siempre empezar desde 0
+          fetchAll: false,
+          maxRecords,
+          searchText
+        });
+
+        if (resultInstitucion.success && resultInstitucion.data) {
+          // Si trajimos todos los datos (página 3+) y NO hay búsqueda, cachear
+          if (maxRecords === 5000 && !resultInstitucion.paginador.hasMore && !searchText) {
+            console.log('💾 Cacheando todos los datos de institución');
+            setInstitutionFullData(resultInstitucion.data);
+          }
+
+          // Paginar localmente
+          const cantidadPorPagina = 10;
+          const inicio = numeroPagina * cantidadPorPagina;
+          const fin = inicio + cantidadPorPagina;
+          const datosPaginados = resultInstitucion.data.slice(inicio, fin);
+
+          setSameInstitutionPeople(datosPaginados);
+          setInstitutionPaginador({
+            numeroPaginas: Math.ceil(resultInstitucion.data.length / cantidadPorPagina),
+            cantidadPagina: cantidadPorPagina,
+            total: resultInstitucion.data.length,
+            paginaActual: numeroPagina,
+            cantidadElementos: datosPaginados.length,
+            hasMore: resultInstitucion.paginador.hasMore,
+            totalEnServidor: resultInstitucion.paginador.totalEnServidor,
+            paginasEnServidor: resultInstitucion.paginador.paginasEnServidor
+          });
+        }
+        return;
+      }
+
+      // Si ya tenemos cache completo y NO hay búsqueda, paginar localmente
+      if (institutionFullData.length > 0 && !searchText) {
+        console.log('📦 Usando cache local para institución');
+        const cantidadPorPagina = 10;
+        const inicio = numeroPagina * cantidadPorPagina;
+        const fin = inicio + cantidadPorPagina;
+        const datosPaginados = institutionFullData.slice(inicio, fin);
+
+        setSameInstitutionPeople(datosPaginados);
+        setInstitutionPaginador({
+          numeroPaginas: Math.ceil(institutionFullData.length / cantidadPorPagina),
+          cantidadPagina: cantidadPorPagina,
+          total: institutionFullData.length,
+          paginaActual: numeroPagina,
+          cantidadElementos: datosPaginados.length,
+          hasMore: false,
+          totalEnServidor: institutionFullData.length, // Cuando usamos cache, es el total completo
+          paginasEnServidor: Math.ceil(institutionFullData.length / cantidadPorPagina)
+        });
+        return;
+      }
+
+
+    } catch (error) {
+      console.error('❌ Error al buscar personas por institución:', error);
+    }
+  };
+
+  // Handlers para cambio de página - lastname
+  const handleLastNamePrevPage = () => {
+    if (!professorRelationData || !lastNamePaginador || lastNamePaginador.paginaActual === 0) return;
+
+    const newPage = lastNamePaginador.paginaActual - 1;
+    fetchLastNamePeople(
+      professorRelationData.apellidoPaterno,
+      professorRelationData.apellidoMaterno,
+      professorRelationData.excludeProfessorId,
+      newPage,
+      lastNameSearchText
+    );
+  };
+
+  const handleLastNameNextPage = () => {
+    if (!professorRelationData || !lastNamePaginador) return;
+
+    // Calcular el total de páginas reales
+    const totalPaginasReales = lastNamePaginador.totalEnServidor
+      ? Math.ceil(lastNamePaginador.totalEnServidor / 10)
+      : lastNamePaginador.numeroPaginas;
+
+    if (lastNamePaginador.paginaActual >= totalPaginasReales - 1) return;
+
+    const newPage = lastNamePaginador.paginaActual + 1;
+    fetchLastNamePeople(
+      professorRelationData.apellidoPaterno,
+      professorRelationData.apellidoMaterno,
+      professorRelationData.excludeProfessorId,
+      newPage,
+      lastNameSearchText
+    );
+  };
+
+  // Handlers para cambio de página - institution
+  const handleInstitutionPrevPage = () => {
+    if (!professorRelationData || !institutionPaginador || institutionPaginador.paginaActual === 0) return;
+
+    const newPage = institutionPaginador.paginaActual - 1;
+    fetchInstitutionPeople(
+      professorRelationData.identificadorGrupo,
+      professorRelationData.idEntidadFederativa,
+      professorRelationData.sujetoObligado,
+      professorRelationData.excludeProfessorId,
+      newPage,
+      institutionSearchText
+    );
+  };
+
+  const handleInstitutionNextPage = () => {
+    if (!professorRelationData || !institutionPaginador) return;
+
+    // Calcular el total de páginas reales
+    const totalPaginasReales = institutionPaginador.totalEnServidor
+      ? Math.ceil(institutionPaginador.totalEnServidor / 10)
+      : institutionPaginador.numeroPaginas;
+
+    if (institutionPaginador.paginaActual >= totalPaginasReales - 1) return;
+
+    const newPage = institutionPaginador.paginaActual + 1;
+    fetchInstitutionPeople(
+      professorRelationData.identificadorGrupo,
+      professorRelationData.idEntidadFederativa,
+      professorRelationData.sujetoObligado,
+      professorRelationData.excludeProfessorId,
+      newPage,
+      institutionSearchText
+    );
   };
 
   const logProfessorView = async (professor) => {
@@ -181,6 +456,53 @@ function ProfessorDetail() {
       console.error('❌ Error al registrar vista del profesor:', error);
     }
   };
+
+  // Helper para resaltar apellidos con gradiente cuando hay match exacto
+  const highlightMatchingLastNames = (fullName, matchExacto) => {
+    if (!matchExacto || !professorData) return fullName;
+
+    // Extraer apellidos del profesor actual
+    const nombrePartes = professorData.nombre.trim().split(' ');
+    const apellidoPaterno = nombrePartes.length > 2 ? nombrePartes[nombrePartes.length - 2] : '';
+    const apellidoMaterno = nombrePartes.length > 2 ? nombrePartes[nombrePartes.length - 1] : '';
+
+    if (!apellidoPaterno) return fullName;
+
+    // Crear patrón para encontrar los apellidos en el nombre
+    const parts = fullName.split(' ');
+
+    return (
+      <span>
+        {parts.map((part, index) => {
+          const isMatchingLastName = (
+            part.toLowerCase() === apellidoPaterno.toLowerCase() ||
+            (apellidoMaterno && part.toLowerCase() === apellidoMaterno.toLowerCase())
+          );
+
+          if (isMatchingLastName) {
+            return (
+              <span
+                key={index}
+                style={{
+                  background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  fontWeight: 700
+                }}
+              >
+                {part}{index < parts.length - 1 ? ' ' : ''}
+              </span>
+            );
+          }
+          return <span key={index}>{part}{index < parts.length - 1 ? ' ' : ''}</span>;
+        })}
+      </span>
+    );
+  };
+
+  // Ya no necesitamos cálculos de paginación local
+  // Los datos ya vienen paginados del servidor
 
   const getAvailableYears = (periodoMontos) => {
     if (!periodoMontos) return [];
@@ -438,24 +760,140 @@ function ProfessorDetail() {
           <div className="detail-tab-content">
             {activeTab === 'institution' && (
               <div className="detail-institution-tab">
+                {/* Search input for institution */}
+                <div style={{
+                  marginBottom: '1rem',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <svg
+                    style={{
+                      position: 'absolute',
+                      left: '0.75rem',
+                      width: '1rem',
+                      height: '1rem',
+                      color: '#9ca3af',
+                      pointerEvents: 'none'
+                    }}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre..."
+                    value={institutionSearchText}
+                    onChange={(e) => setInstitutionSearchText(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem 2.5rem 0.625rem 2.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  />
+                  {institutionSearchText && (
+                    <button
+                      onClick={() => setInstitutionSearchText('')}
+                      style={{
+                        position: 'absolute',
+                        right: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#9ca3af',
+                        padding: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
                 {loadingRelations ? (
                   <div className="related-people-empty">Cargando...</div>
                 ) : sameInstitutionPeople.length > 0 ? (
-                  <div className="related-people-list">
-                    {sameInstitutionPeople.map((person, index) => (
-                      <Link
-                        key={index}
-                        to={`/profesor/${person.professorId}/${encodeURIComponent(person.nombre)}`}
-                        className="related-people-item"
-                      >
-                        <div className="related-people-info">
-                          <div className="related-people-name">{person.nombre}</div>
-                          <div className="related-people-institution">{person.entidadFederativa}</div>
-                        </div>
-                        <div className="related-people-salary">{person.sueldoActual}</div>
-                      </Link>
-                    ))}
-                  </div>
+                  <>
+                    {institutionPaginador && (
+                      <div style={{ marginBottom: '0.75rem', color: '#6b7280', fontSize: '0.875rem' }}>
+                        Mostrando {institutionPaginador.paginaActual * institutionPaginador.cantidadPagina + 1}-{institutionPaginador.paginaActual * institutionPaginador.cantidadPagina + institutionPaginador.cantidadElementos} de {institutionPaginador.totalEnServidor || institutionPaginador.total} personas
+                      </div>
+                    )}
+                    <div className="related-people-list">
+                      {sameInstitutionPeople.map((person, index) => (
+                        <Link
+                          key={index}
+                          to={`/profesor/${person.professorId}/${encodeURIComponent(person.nombre)}`}
+                          className="related-people-item"
+                        >
+                          <div className="related-people-info">
+                            <div className="related-people-name">{person.nombre}</div>
+                            <div className="related-people-institution">{person.entidadFederativa}</div>
+                          </div>
+                          <div className="related-people-salary">{person.sueldoActual}</div>
+                        </Link>
+                      ))}
+                    </div>
+                    {institutionPaginador && institutionPaginador.numeroPaginas > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginTop: '1rem'
+                      }}>
+                        <button
+                          onClick={handleInstitutionPrevPage}
+                          disabled={institutionPaginador.paginaActual === 0}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: institutionPaginador.paginaActual === 0 ? '#e5e7eb' : '#2563eb',
+                            color: institutionPaginador.paginaActual === 0 ? '#9ca3af' : 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: institutionPaginador.paginaActual === 0 ? 'not-allowed' : 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          Anterior
+                        </button>
+                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                          Página {institutionPaginador.paginaActual + 1} de {institutionPaginador.totalEnServidor ? Math.ceil(institutionPaginador.totalEnServidor / 10) : institutionPaginador.numeroPaginas}
+                        </span>
+                        <button
+                          onClick={handleInstitutionNextPage}
+                          disabled={institutionPaginador.paginaActual === (institutionPaginador.totalEnServidor ? Math.ceil(institutionPaginador.totalEnServidor / 10) : institutionPaginador.numeroPaginas) - 1}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: institutionPaginador.paginaActual === (institutionPaginador.totalEnServidor ? Math.ceil(institutionPaginador.totalEnServidor / 10) : institutionPaginador.numeroPaginas) - 1 ? '#e5e7eb' : '#2563eb',
+                            color: institutionPaginador.paginaActual === (institutionPaginador.totalEnServidor ? Math.ceil(institutionPaginador.totalEnServidor / 10) : institutionPaginador.numeroPaginas) - 1 ? '#9ca3af' : 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: institutionPaginador.paginaActual === (institutionPaginador.totalEnServidor ? Math.ceil(institutionPaginador.totalEnServidor / 10) : institutionPaginador.numeroPaginas) - 1 ? 'not-allowed' : 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          Siguiente
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="related-people-empty">No se encontraron personas de la misma institución</div>
                 )}
@@ -464,24 +902,146 @@ function ProfessorDetail() {
 
             {activeTab === 'lastname' && (
               <div className="detail-lastname-tab">
+                {/* Search input for lastname */}
+                <div style={{
+                  marginBottom: '1rem',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <svg
+                    style={{
+                      position: 'absolute',
+                      left: '0.75rem',
+                      width: '1rem',
+                      height: '1rem',
+                      color: '#9ca3af',
+                      pointerEvents: 'none'
+                    }}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre..."
+                    value={lastNameSearchText}
+                    onChange={(e) => setLastNameSearchText(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem 2.5rem 0.625rem 2.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  />
+                  {lastNameSearchText && (
+                    <button
+                      onClick={() => setLastNameSearchText('')}
+                      style={{
+                        position: 'absolute',
+                        right: '0.75rem',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#9ca3af',
+                        padding: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
                 {loadingRelations ? (
                   <div className="related-people-empty">Cargando...</div>
                 ) : sameLastNamePeople.length > 0 ? (
-                  <div className="related-people-list">
-                    {sameLastNamePeople.map((person, index) => (
-                      <Link
-                        key={index}
-                        to={`/profesor/${person.professorId}/${encodeURIComponent(person.nombre)}`}
-                        className="related-people-item"
-                      >
-                        <div className="related-people-info">
-                          <div className="related-people-name">{person.nombre}</div>
-                          <div className="related-people-institution">{person.entidadFederativa}</div>
-                        </div>
-                        <div className="related-people-salary">{person.sueldoActual}</div>
-                      </Link>
-                    ))}
-                  </div>
+                  <>
+                    {lastNamePaginador && (
+                      <div style={{ marginBottom: '0.75rem', color: '#6b7280', fontSize: '0.875rem' }}>
+                        Mostrando {lastNamePaginador.paginaActual * lastNamePaginador.cantidadPagina + 1}-{lastNamePaginador.paginaActual * lastNamePaginador.cantidadPagina + lastNamePaginador.cantidadElementos} de {lastNamePaginador.totalEnServidor || lastNamePaginador.total} personas
+                      </div>
+                    )}
+                    <div className="related-people-list">
+                      {sameLastNamePeople.map((person, index) => (
+                        <Link
+                          key={index}
+                          to={`/profesor/${person.professorId}/${encodeURIComponent(person.nombre)}`}
+                          className="related-people-item"
+                          style={{
+                            border: person.matchExacto ? '1px solid #fbbf24' : '1px solid transparent',
+                            backgroundColor: person.matchExacto ? '#fffbeb' : '#f9fafb'
+                          }}
+                        >
+                          <div className="related-people-info">
+                            <div className="related-people-name">
+                              {highlightMatchingLastNames(person.nombre, person.matchExacto)}
+                            </div>
+                            <div className="related-people-institution">{person.entidadFederativa}</div>
+                          </div>
+                          <div className="related-people-salary">{person.sueldoActual}</div>
+                        </Link>
+                      ))}
+                    </div>
+                    {lastNamePaginador && lastNamePaginador.numeroPaginas > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginTop: '1rem'
+                      }}>
+                        <button
+                          onClick={handleLastNamePrevPage}
+                          disabled={lastNamePaginador.paginaActual === 0}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: lastNamePaginador.paginaActual === 0 ? '#e5e7eb' : '#2563eb',
+                            color: lastNamePaginador.paginaActual === 0 ? '#9ca3af' : 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: lastNamePaginador.paginaActual === 0 ? 'not-allowed' : 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          Anterior
+                        </button>
+                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                          Página {lastNamePaginador.paginaActual + 1} de {lastNamePaginador.totalEnServidor ? Math.ceil(lastNamePaginador.totalEnServidor / 10) : lastNamePaginador.numeroPaginas}
+                        </span>
+                        <button
+                          onClick={handleLastNameNextPage}
+                          disabled={lastNamePaginador.paginaActual === (lastNamePaginador.totalEnServidor ? Math.ceil(lastNamePaginador.totalEnServidor / 10) : lastNamePaginador.numeroPaginas) - 1}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: lastNamePaginador.paginaActual === (lastNamePaginador.totalEnServidor ? Math.ceil(lastNamePaginador.totalEnServidor / 10) : lastNamePaginador.numeroPaginas) - 1 ? '#e5e7eb' : '#2563eb',
+                            color: lastNamePaginador.paginaActual === (lastNamePaginador.totalEnServidor ? Math.ceil(lastNamePaginador.totalEnServidor / 10) : lastNamePaginador.numeroPaginas) - 1 ? '#9ca3af' : 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: lastNamePaginador.paginaActual === (lastNamePaginador.totalEnServidor ? Math.ceil(lastNamePaginador.totalEnServidor / 10) : lastNamePaginador.numeroPaginas) - 1 ? 'not-allowed' : 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          Siguiente
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="related-people-empty">No se encontraron personas con el mismo apellido</div>
                 )}

@@ -33,9 +33,11 @@ function Home2() {
   const [entidadesFederativas, setEntidadesFederativas] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
   
-  // Estados para paginación
-  const [currentPage, setCurrentPage] = useState(1);
-  const resultsPerPage = 10;
+  // Estados para paginación (ahora local)
+  const [currentPage, setCurrentPage] = useState(0); // 0-indexed para paginación local
+  const [paginador, setPaginador] = useState(null);
+  const [allResults, setAllResults] = useState([]); // Todos los resultados normalizados
+  const resultsPerPage = 20; // Cantidad por página que mostramos al usuario
 
   // Estados para dropdown de autocompletado
   const [showDropdown, setShowDropdown] = useState(false);
@@ -57,6 +59,74 @@ function Home2() {
 
   // Ref para manejar clicks fuera del dropdown
   const dropdownRef = useRef(null);
+
+  // Función para normalizar resultados: agrupa por nombre + institución
+  const normalizeResults = (professors) => {
+    const grouped = {};
+
+    professors.forEach(prof => {
+      // Normalizar nombre e institución para agrupar correctamente
+      const normalizedNombre = prof.nombre.trim().toLowerCase().replace(/\s+/g, ' ');
+      const normalizedInstitucion = prof.sujetoObligado
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .replace(/[.,;:!?]+$/g, ''); // Eliminar puntuación al final
+
+      const key = `${normalizedNombre}|${normalizedInstitucion}`;
+
+      if (!grouped[key]) {
+        // Primera vez que vemos este nombre + institución
+        grouped[key] = { ...prof };
+      } else {
+        // Ya existe, combinar periodos
+        const existing = grouped[key];
+
+        // Combinar periodoMontos si existen
+        if (prof.periodoMontos && existing.periodoMontos) {
+          // Crear un Set para evitar duplicados por periodo
+          const periodosMap = new Map();
+
+          [...existing.periodoMontos, ...prof.periodoMontos].forEach(periodo => {
+            periodosMap.set(periodo.periodo, periodo);
+          });
+
+          existing.periodoMontos = Array.from(periodosMap.values());
+
+          // Recalcular sueldo máximo y actual
+          let maxMonto = 0;
+          let maxPeriodo = '';
+          existing.periodoMontos.forEach(p => {
+            const monto = parseFloat(p.monto.replace(/[$,]/g, ''));
+            if (monto > maxMonto) {
+              maxMonto = monto;
+              maxPeriodo = p.periodo;
+            }
+          });
+
+          if (maxMonto > 0) {
+            existing.sueldoMax = {
+              monto: `$${maxMonto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              periodo: maxPeriodo
+            };
+          }
+
+          // Actualizar sueldo actual (el del periodo más reciente)
+          const sortedPeriodos = existing.periodoMontos.sort((a, b) => {
+            const dateA = a.periodo.split(' - ')[0];
+            const dateB = b.periodo.split(' - ')[0];
+            return dateB.localeCompare(dateA);
+          });
+
+          if (sortedPeriodos.length > 0) {
+            existing.sueldoActual = sortedPeriodos[0].monto;
+          }
+        }
+      }
+    });
+
+    return Object.values(grouped);
+  };
 
   // Scroll al inicio cuando se monta el componente
   useEffect(() => {
@@ -171,33 +241,50 @@ function Home2() {
     if (location.state?.searchName) {
       const savedName = location.state.searchName;
       setProfessorName(savedName);
-      
-      // Ejecutar búsqueda con el nombre guardado
+
+      // Ejecutar búsqueda con el nombre guardado usando la nueva lógica
       setLoading(true);
-      apiClient.consultarProfesores({
-        contenido: savedName,
-        cantidad: 200,
-        numeroPagina: 0,
-      })
-      .then(data => {
-        setResults(data.datosSolr || []);
-        setShowResults(true);
-        setHasSearched(true);
-        if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
-          setEntidadesFederativas(data.entidadesFederativas);
-        }
-        
-        // Actualizar URL con los parámetros de búsqueda
-        updateURLParams(savedName, null);
-      })
-      .catch(error => {
-        console.error("❌ Error al restaurar búsqueda:", error);
-        setResults([]);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-      
+      fetchAndNormalizeResults(savedName)
+        .then(({ normalizedResults, totalFromServer, entidades }) => {
+          console.log("✅ Resultado desde location.state normalizado:", normalizedResults.length);
+
+          // Guardar todos los resultados normalizados
+          setAllResults(normalizedResults);
+
+          // Mostrar primera página (primeros 20)
+          const firstPage = normalizedResults.slice(0, resultsPerPage);
+          setResults(firstPage);
+
+          // Configurar paginador local
+          const totalPages = Math.ceil(normalizedResults.length / resultsPerPage);
+          setPaginador({
+            total: normalizedResults.length,
+            totalFromServer: totalFromServer,
+            numeroPaginas: totalPages,
+            cantidadPagina: resultsPerPage,
+            paginaActual: 0
+          });
+
+          setShowResults(true);
+          setHasSearched(true);
+          setCurrentPage(0);
+
+          if (entidades && entidades.length > 0) {
+            setEntidadesFederativas(entidades);
+          }
+
+          // Actualizar URL con los parámetros de búsqueda
+          updateURLParams(savedName, null);
+        })
+        .catch(error => {
+          console.error("❌ Error al restaurar búsqueda:", error);
+          setResults([]);
+          setAllResults([]);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+
       // Limpiar el state para que no se restaure de nuevo
       window.history.replaceState({}, document.title);
       return; // No ejecutar la búsqueda inicial
@@ -220,6 +307,55 @@ function Home2() {
     performInitialSearch();
   }, [location.state]); // Solo depende de location.state, los params se manejan internamente
 
+  // Función helper para traer 400 registros y normalizarlos
+  const fetchAndNormalizeResults = async (contenido, entidadFederativa = null) => {
+    console.log('🔍 Trayendo y normalizando 400 registros para:', contenido);
+
+    try {
+      // Traer página 0 (primeros 200)
+      const page0Promise = apiClient.consultarProfesores({
+        contenido,
+        cantidad: 200,
+        numeroPagina: 0,
+        ...(entidadFederativa && { entidadFederativa })
+      });
+
+      // Traer página 1 (siguientes 200)
+      const page1Promise = apiClient.consultarProfesores({
+        contenido,
+        cantidad: 200,
+        numeroPagina: 1,
+        ...(entidadFederativa && { entidadFederativa })
+      });
+
+      // Esperar ambas peticiones en paralelo
+      const [data0, data1] = await Promise.all([page0Promise, page1Promise]);
+
+      // Combinar resultados
+      const allProfs = [...(data0.datosSolr || []), ...(data1.datosSolr || [])];
+
+      console.log('📊 Total sin normalizar:', allProfs.length);
+
+      // Normalizar (agrupar por nombre + institución)
+      const normalized = normalizeResults(allProfs);
+
+      console.log('✅ Total normalizado:', normalized.length);
+
+      // Usar entidades del primer response (son las mismas)
+      const entidades = data0.entidadesFederativas || [];
+
+      return {
+        normalizedResults: normalized,
+        totalFromServer: data0.paginador?.total || 0, // Total en el servidor
+        entidades
+      };
+
+    } catch (error) {
+      console.error('❌ Error al traer y normalizar resultados:', error);
+      throw error;
+    }
+  };
+
   // Función para actualizar URL params sin recargar
   const updateURLParams = (nombre, entidad) => {
     const params = new URLSearchParams();
@@ -229,7 +365,7 @@ function Home2() {
     if (entidad) {
       params.set('entidad', entidad);
     }
-    
+
     // Actualizar URL sin recargar (replace para no agregar a historial)
     if (nombre) {
       setSearchParams(params, { replace: true });
@@ -239,27 +375,42 @@ function Home2() {
   // Búsqueda desde parámetros URL
   const performSearchFromURL = async (nombre, entidad) => {
     setLoading(true);
-    
+
     try {
-      const data = await apiClient.consultarProfesores({
-        contenido: nombre,
-        cantidad: 200,
-        numeroPagina: 0,
-        ...(entidad && { entidadFederativa: entidad })
+      const { normalizedResults, totalFromServer, entidades } = await fetchAndNormalizeResults(nombre, entidad);
+
+      console.log("✅ Resultado desde URL normalizado:", normalizedResults.length);
+
+      // Guardar todos los resultados normalizados
+      setAllResults(normalizedResults);
+
+      // Mostrar primera página (primeros 20)
+      const firstPage = normalizedResults.slice(0, resultsPerPage);
+      setResults(firstPage);
+
+      // Configurar paginador local
+      const totalPages = Math.ceil(normalizedResults.length / resultsPerPage);
+      setPaginador({
+        total: normalizedResults.length,
+        totalFromServer: totalFromServer,
+        numeroPaginas: totalPages,
+        cantidadPagina: resultsPerPage,
+        paginaActual: 0
       });
 
-      console.log("✅ Resultado desde URL:", data);
-      setResults(data.datosSolr || []);
       setShowResults(true);
       setHasSearched(true);
-      
-      if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
-        setEntidadesFederativas(data.entidadesFederativas);
+      setCurrentPage(0);
+
+      if (entidades && entidades.length > 0) {
+        setEntidadesFederativas(entidades);
       }
-      
+
     } catch (error) {
       console.error("❌ Error en búsqueda desde URL:", error);
       setResults([]);
+      setAllResults([]);
+      setPaginador(null);
     } finally {
       setLoading(false);
     }
@@ -268,24 +419,38 @@ function Home2() {
   const performInitialSearch = async () => {
     setProfessorName('Sheinbaum');
     setLoading(true);
-    
+
     try {
-      const data = await apiClient.consultarProfesores({
-        contenido: 'Sheinbaum',
-        cantidad: 200,
-        numeroPagina: 0,
+      const { normalizedResults, totalFromServer, entidades } = await fetchAndNormalizeResults('Sheinbaum');
+
+      console.log("✅ Resultado inicial normalizado:", normalizedResults.length);
+
+      // Guardar todos los resultados normalizados
+      setAllResults(normalizedResults);
+
+      // Mostrar primera página (primeros 20)
+      const firstPage = normalizedResults.slice(0, resultsPerPage);
+      setResults(firstPage);
+
+      // Configurar paginador local
+      const totalPages = Math.ceil(normalizedResults.length / resultsPerPage);
+      setPaginador({
+        total: normalizedResults.length,
+        totalFromServer: totalFromServer,
+        numeroPaginas: totalPages,
+        cantidadPagina: resultsPerPage,
+        paginaActual: 0
       });
 
-      console.log("✅ Resultado inicial:", data);
-      setResults(data.datosSolr || []);
       setShowResults(true);
       setHasSearched(true);
-      
-      if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
-        console.log('🏛️ Entidades Federativas del API:', data.entidadesFederativas);
-        setEntidadesFederativas(data.entidadesFederativas);
+      setCurrentPage(0);
+
+      if (entidades && entidades.length > 0) {
+        console.log('🏛️ Entidades Federativas del API:', entidades);
+        setEntidadesFederativas(entidades);
       }
-      
+
     } catch (error) {
       console.error("❌ Error en búsqueda inicial:", error);
     } finally {
@@ -339,19 +504,33 @@ function Home2() {
     // Ejecutar búsqueda automáticamente
     setLoading(true);
     try {
-      const data = await apiClient.consultarProfesores({
-        contenido: nombre,
-        cantidad: 200,
-        numeroPagina: 0,
+      const { normalizedResults, totalFromServer, entidades } = await fetchAndNormalizeResults(nombre);
+
+      console.log("✅ Resultado desde dropdown normalizado:", normalizedResults.length);
+
+      // Guardar todos los resultados normalizados
+      setAllResults(normalizedResults);
+
+      // Mostrar primera página (primeros 20)
+      const firstPage = normalizedResults.slice(0, resultsPerPage);
+      setResults(firstPage);
+
+      // Configurar paginador local
+      const totalPages = Math.ceil(normalizedResults.length / resultsPerPage);
+      setPaginador({
+        total: normalizedResults.length,
+        totalFromServer: totalFromServer,
+        numeroPaginas: totalPages,
+        cantidadPagina: resultsPerPage,
+        paginaActual: 0
       });
 
-      console.log("✅ Resultado desde dropdown:", data);
-      setResults(data.datosSolr || []);
       setShowResults(true);
       setHasSearched(true);
+      setCurrentPage(0);
 
-      if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
-        setEntidadesFederativas(data.entidadesFederativas);
+      if (entidades && entidades.length > 0) {
+        setEntidadesFederativas(entidades);
       }
 
       // Actualizar URL
@@ -361,6 +540,8 @@ function Home2() {
       console.error("❌ Error en búsqueda desde dropdown:", error);
       alert('Error al buscar información');
       setResults([]);
+      setAllResults([]);
+      setPaginador(null);
       setShowResults(false);
     } finally {
       setLoading(false);
@@ -415,60 +596,84 @@ function Home2() {
   // FIN FUNCIONES DROPDOWN
   // ============================================
 
+  // Función genérica para ejecutar búsqueda con un nombre específico
+  const performSearch = async (searchName) => {
+    if (!searchName || !searchName.trim()) return;
+
+    setLoading(true);
+    // Resetear filtros al hacer una nueva búsqueda
+    setSelectedEntidad(null);
+    setIsFilterOpen(false);
+
+    // Cerrar dropdown si está abierto
+    setShowDropdown(false);
+
+    // Actualizar el nombre del profesor
+    setProfessorName(searchName);
+
+    // Tracking UTM: registrar click si hay configuración UTM activa
+    if (utmKey) {
+      await trackUtmClick(utmKey);
+      trackUtmEvent('utm_custom_click', {
+        utm_key: utmKey,
+        search_query: searchName
+      });
+    }
+
+    try {
+      const { normalizedResults, totalFromServer, entidades } = await fetchAndNormalizeResults(searchName);
+
+      console.log("✅ Resultado normalizado:", normalizedResults.length);
+
+      // Guardar todos los resultados normalizados
+      setAllResults(normalizedResults);
+
+      // Mostrar primera página (primeros 20)
+      const firstPage = normalizedResults.slice(0, resultsPerPage);
+      setResults(firstPage);
+
+      // Configurar paginador local
+      const totalPages = Math.ceil(normalizedResults.length / resultsPerPage);
+      setPaginador({
+        total: normalizedResults.length,
+        totalFromServer: totalFromServer,
+        numeroPaginas: totalPages,
+        cantidadPagina: resultsPerPage,
+        paginaActual: 0
+      });
+
+      setShowResults(true);
+      setHasSearched(true);
+      setCurrentPage(0);
+
+      // Usar entidades federativas directamente del response
+      if (entidades && entidades.length > 0) {
+        console.log('🏛️ Entidades Federativas del API:', entidades);
+        setEntidadesFederativas(entidades);
+      }
+
+      // Agregar al historial
+      const nuevoHistorial = addToHistorial(searchName);
+      setHistorial(nuevoHistorial);
+
+      // Actualizar URL con parámetros de búsqueda
+      updateURLParams(searchName, null);
+
+    } catch (error) {
+      console.error("❌ Error en la solicitud:", error);
+      alert(`Error al buscar información`);
+      setResults([]);
+      setAllResults([]);
+      setPaginador(null);
+      setShowResults(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (professorName.trim()) {
-      setLoading(true);
-      // Resetear filtros al hacer una nueva búsqueda
-      setSelectedEntidad(null);
-      setIsFilterOpen(false);
-
-      // Cerrar dropdown si está abierto
-      setShowDropdown(false);
-
-      // Tracking UTM: registrar click si hay configuración UTM activa
-      if (utmKey) {
-        await trackUtmClick(utmKey);
-        trackUtmEvent('utm_custom_click', {
-          utm_key: utmKey,
-          search_query: professorName
-        });
-      }
-
-      try {
-        const data = await apiClient.consultarProfesores({
-          contenido: professorName,
-          cantidad: 200,
-          numeroPagina: 0,
-        });
-
-        console.log("✅ Resultado:", data);
-        setResults(data.datosSolr || []);
-        setShowResults(true);
-        setHasSearched(true);
-
-        // Usar entidades federativas directamente del response
-        if (data.entidadesFederativas && data.entidadesFederativas.length > 0) {
-          console.log('🏛️ Entidades Federativas del API:', data.entidadesFederativas);
-          setEntidadesFederativas(data.entidadesFederativas);
-        }
-
-        // Agregar al historial
-        const nuevoHistorial = addToHistorial(professorName);
-        setHistorial(nuevoHistorial);
-
-        // Actualizar URL con parámetros de búsqueda
-        updateURLParams(professorName, null);
-
-      } catch (error) {
-        console.error("❌ Error en la solicitud:", error);
-        alert(`Error al buscar información`);
-        setResults([]);
-        setShowResults(false);
-      } finally {
-        setLoading(false);
-      }
-    }
+    await performSearch(professorName);
   };
 
   const selectEntidadFederativa = async (entidad) => {
@@ -487,22 +692,35 @@ function Home2() {
   const executeFilteredSearch = async (entidad) => {
     console.log("🔄 Ejecutando búsqueda filtrada por entidad:", entidad);
     setLoading(true);
-    
+
     try {
-      const data = await apiClient.consultarProfesores({
-        contenido: professorName,
-        cantidad: 200,
-        numeroPagina: 0,
-        entidadFederativa: entidad,
+      const { normalizedResults, totalFromServer, entidades } = await fetchAndNormalizeResults(professorName, entidad);
+
+      console.log("✅ Resultado filtrado normalizado:", normalizedResults.length);
+
+      // Guardar todos los resultados normalizados
+      setAllResults(normalizedResults);
+
+      // Mostrar primera página (primeros 20)
+      const firstPage = normalizedResults.slice(0, resultsPerPage);
+      setResults(firstPage);
+
+      // Configurar paginador local
+      const totalPages = Math.ceil(normalizedResults.length / resultsPerPage);
+      setPaginador({
+        total: normalizedResults.length,
+        totalFromServer: totalFromServer,
+        numeroPaginas: totalPages,
+        cantidadPagina: resultsPerPage,
+        paginaActual: 0
       });
 
-      console.log("✅ Resultado filtrado:", data);
-      setResults(data.datosSolr || []);
+      setCurrentPage(0);
       setIsFilterOpen(false); // Colapsar filtros después de la búsqueda
-      
+
       // Actualizar URL con nombre y entidad
       updateURLParams(professorName, entidad);
-      
+
     } catch (error) {
       console.error("❌ Error en la búsqueda filtrada:", error);
       alert(`Error al filtrar resultados: `);
@@ -514,20 +732,34 @@ function Home2() {
   const executeOriginalSearch = async () => {
     setLoading(true);
     console.log('🔍 Ejecutando búsqueda original sin filtros');
-    
+
     try {
-      const data = await apiClient.consultarProfesores({
-        contenido: professorName,
-        cantidad: 100,
-        numeroPagina: 0,
+      const { normalizedResults, totalFromServer, entidades } = await fetchAndNormalizeResults(professorName);
+
+      console.log("✅ Resultado original normalizado:", normalizedResults.length);
+
+      // Guardar todos los resultados normalizados
+      setAllResults(normalizedResults);
+
+      // Mostrar primera página (primeros 20)
+      const firstPage = normalizedResults.slice(0, resultsPerPage);
+      setResults(firstPage);
+
+      // Configurar paginador local
+      const totalPages = Math.ceil(normalizedResults.length / resultsPerPage);
+      setPaginador({
+        total: normalizedResults.length,
+        totalFromServer: totalFromServer,
+        numeroPaginas: totalPages,
+        cantidadPagina: resultsPerPage,
+        paginaActual: 0
       });
 
-      console.log("✅ Resultado original:", data);
-      setResults(data.datosSolr || []);
-      
+      setCurrentPage(0);
+
       // Actualizar URL sin entidad (solo nombre)
       updateURLParams(professorName, null);
-      
+
     } catch (error) {
       console.error("❌ Error en la búsqueda original:", error);
       alert(`Error al ejecutar búsqueda: `);
@@ -555,36 +787,45 @@ function Home2() {
     return `/profesor/${professorData.professorId}/${encodedName}`;
   };
 
-  // Funciones de paginación
-  const indexOfLastResult = currentPage * resultsPerPage;
-  const indexOfFirstResult = indexOfLastResult - resultsPerPage;
-  const currentResults = results.slice(indexOfFirstResult, indexOfLastResult);
-  const totalPages = Math.ceil(results.length / resultsPerPage);
+  // Funciones de paginación - ahora local (no hace peticiones al servidor)
+  const totalPages = paginador ? paginador.numeroPaginas : 0;
 
   const paginate = (pageNumber) => {
+    if (pageNumber < 0 || pageNumber >= totalPages) return;
+
+    // Calcular el rango de resultados para esta página
+    const start = pageNumber * resultsPerPage;
+    const end = start + resultsPerPage;
+
+    // Obtener resultados de la página desde allResults
+    const pageResults = allResults.slice(start, end);
+
+    setResults(pageResults);
     setCurrentPage(pageNumber);
+
+    // Actualizar paginador
+    if (paginador) {
+      setPaginador({
+        ...paginador,
+        paginaActual: pageNumber
+      });
+    }
+
     // Scroll suave al inicio de los resultados
     window.scrollTo({ top: 400, behavior: 'smooth' });
   };
 
   const nextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-      window.scrollTo({ top: 400, behavior: 'smooth' });
+    if (paginador && currentPage < totalPages - 1) {
+      paginate(currentPage + 1);
     }
   };
 
   const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-      window.scrollTo({ top: 400, behavior: 'smooth' });
+    if (currentPage > 0) {
+      paginate(currentPage - 1);
     }
   };
-
-  // Resetear paginación cuando cambien los resultados
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [results]);
 
   return (
     <div className="home2-container">
@@ -680,20 +921,16 @@ function Home2() {
                 type="text"
                 value={heroSearchName}
                 onChange={(e) => setHeroSearchName(e.target.value)}
-                onKeyDown={(e) => {
+                onKeyDown={async (e) => {
                   if (e.key === 'Enter' && heroSearchName.trim()) {
                     e.preventDefault();
-                    setProfessorName(heroSearchName);
+                    await performSearch(heroSearchName);
                     setTimeout(() => {
-                      const fakeEvent = { preventDefault: () => {} };
-                      handleSubmit(fakeEvent);
-                      setTimeout(() => {
-                        window.scrollTo({
-                          top: 900,
-                          behavior: 'smooth'
-                        });
-                      }, 300);
-                    }, 100);
+                      window.scrollTo({
+                        top: 1170,
+                        behavior: 'smooth'
+                      });
+                    }, 300);
                   }
                 }}
                 placeholder="Ingresa un nombre..."
@@ -726,19 +963,16 @@ function Home2() {
               />
 
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   if (!heroSearchName.trim()) return;
                   e.preventDefault();
-                  setProfessorName(heroSearchName);
+                  await performSearch(heroSearchName);
                   setTimeout(() => {
-                    handleSubmit(e);
-                    setTimeout(() => {
-                      window.scrollTo({
-                        top: 900,
-                        behavior: 'smooth'
-                      });
-                    }, 300);
-                  }, 100);
+                    window.scrollTo({
+                      top: 1100,
+                      behavior: 'smooth'
+                    });
+                  }, 300);
                 }}
                 title="Buscar Sueldos"
                 disabled={!heroSearchName.trim()}
@@ -1099,11 +1333,12 @@ function Home2() {
                     style={{ paddingRight: '3.5rem' }}
                   />
                   {/* Botón de búsqueda dentro del input */}
-                  <button
-                    type="button"
+                  <div
                     onClick={(e) => {
                       e.preventDefault();
-                      handleSubmit(e);
+                      if (!loading) {
+                        handleSubmit(e);
+                      }
                     }}
                     style={{
                       position: 'absolute',
@@ -1118,22 +1353,24 @@ function Home2() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer',
+                      cursor: loading ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s',
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                      opacity: loading ? 0.6 : 1
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#111827';
-                      e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+                      if (!loading) {
+                        e.currentTarget.style.backgroundColor = '#111827';
+                        e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+                      }
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '#1f2937';
                       e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
                     }}
-                    disabled={loading}
                   >
-                    <FaSearch size={20} color="white" />
-                  </button>
+                    <FaSearch size={15} color="white" />
+                  </div>
                 </div>
 
                 {/* Top 3 más buscados + sugerencias - Badges debajo del input */}
@@ -1465,12 +1702,19 @@ function Home2() {
         <div className="home2-results-section">
           <div className="home2-results-header">
             <h2 className="home2-results-title">
-              Resultados encontrados <span className="home2-results-count">({results.length})</span>
+              Resultados encontrados <span className="home2-results-count">
+                ({paginador ? paginador.total : results.length})
+              </span>
             </h2>
+            {paginador && (
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                Página {currentPage + 1} de {totalPages} - Mostrando {results.length} resultados
+              </p>
+            )}
           </div>
 
           <div className="home2-results-list">
-            {currentResults.map((result, index) => (
+            {results.map((result, index) => (
               <>
                 {/* Anuncios en posiciones específicas */}
                 {/* {(index === 1 || index === 4 || index === 7) && (
@@ -1567,10 +1811,10 @@ function Home2() {
           {/* Paginador */}
           {totalPages > 1 && (
             <div className="pagination">
-              <button 
+              <button
                 className="pagination-button pagination-prev"
                 onClick={prevPage}
-                disabled={currentPage === 1}
+                disabled={currentPage === 0 || loading}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <polyline points="15 18 9 12 15 6"></polyline>
@@ -1580,36 +1824,39 @@ function Home2() {
 
               <div className="pagination-numbers">
                 {[...Array(totalPages)].map((_, index) => {
-                  const pageNumber = index + 1;
+                  const pageIndex = index; // 0-based para el backend
+                  const displayNumber = index + 1; // 1-based para mostrar al usuario
+
                   // Mostrar primera, última y páginas cercanas a la actual
                   if (
-                    pageNumber === 1 ||
-                    pageNumber === totalPages ||
-                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                    pageIndex === 0 ||
+                    pageIndex === totalPages - 1 ||
+                    (pageIndex >= currentPage - 1 && pageIndex <= currentPage + 1)
                   ) {
                     return (
                       <button
-                        key={pageNumber}
-                        className={`pagination-number ${currentPage === pageNumber ? 'active' : ''}`}
-                        onClick={() => paginate(pageNumber)}
+                        key={pageIndex}
+                        className={`pagination-number ${currentPage === pageIndex ? 'active' : ''}`}
+                        onClick={() => paginate(pageIndex)}
+                        disabled={loading}
                       >
-                        {pageNumber}
+                        {displayNumber}
                       </button>
                     );
                   } else if (
-                    pageNumber === currentPage - 2 ||
-                    pageNumber === currentPage + 2
+                    pageIndex === currentPage - 2 ||
+                    pageIndex === currentPage + 2
                   ) {
-                    return <span key={pageNumber} className="pagination-ellipsis">...</span>;
+                    return <span key={pageIndex} className="pagination-ellipsis">...</span>;
                   }
                   return null;
                 })}
               </div>
 
-              <button 
+              <button
                 className="pagination-button pagination-next"
                 onClick={nextPage}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages - 1 || loading}
               >
                 <span>Siguiente</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">

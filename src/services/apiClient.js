@@ -409,23 +409,23 @@ class ApiClient {
   /**
    * Buscar personas con el mismo apellido
    */
-  async buscarPorApellido({ apellidoPaterno, apellidoMaterno, excludeProfessorId }) {
-    console.log('👨‍👩‍👧‍👦 Buscando personas con apellido:', apellidoPaterno, apellidoMaterno);
+  async buscarPorApellido({ apellidoPaterno, apellidoMaterno, excludeProfessorId, numeroPagina = 0, fetchAll = false, maxRecords = 5000, searchText = '' }) {
+    console.log('👨‍👩‍👧‍👦 Buscando personas con apellido:', apellidoPaterno, apellidoMaterno, 'Página:', numeroPagina, 'MaxRecords:', maxRecords, 'SearchText:', searchText);
     return this.request('/same-lastname', {
       method: 'POST',
-      body: JSON.stringify({ apellidoPaterno, apellidoMaterno, excludeProfessorId }),
+      body: JSON.stringify({ apellidoPaterno, apellidoMaterno, excludeProfessorId, numeroPagina, fetchAll, maxRecords, searchText }),
     });
   }
 
   /**
    * Buscar personas de la misma institución
    */
-  async buscarPorInstitucion({ identificadorGrupo, idEntidadFederativa, sujetoObligado, excludeProfessorId }) {
-    console.log('🏛️ Buscando personas de la institución:', sujetoObligado);
+  async buscarPorInstitucion({ identificadorGrupo, idEntidadFederativa, sujetoObligado, excludeProfessorId, numeroPagina = 0, fetchAll = false, maxRecords = 5000, searchText = '' }) {
+    console.log('🏛️ Buscando personas de la institución:', sujetoObligado, 'Página:', numeroPagina, 'MaxRecords:', maxRecords, 'SearchText:', searchText);
     console.log('📋 ID Grupo:', identificadorGrupo);
     return this.request('/same-institution', {
       method: 'POST',
-      body: JSON.stringify({ identificadorGrupo, idEntidadFederativa, sujetoObligado, excludeProfessorId }),
+      body: JSON.stringify({ identificadorGrupo, idEntidadFederativa, sujetoObligado, excludeProfessorId, numeroPagina, fetchAll, maxRecords, searchText }),
     });
   }
 }
